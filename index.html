@@ -35,14 +35,14 @@ window.SEHC_AUTH_RESULT_RECEIVE=function(data){
     const elapsed=Date.now()-pollStarted;
     stage('Waiting for secure verification… '+Math.ceil(elapsed/1000)+'s');
     if(elapsed>25000){
-      $('login button[type="submit"]').disabled=false;
+      document.querySelector('#login button[type="submit"]').disabled=false;
       $('error').textContent='Sign-in timed out. Please try again.';
       stage('The backend did not return the login result within 25 seconds.');
       return;
     }
     setTimeout(()=>queryResult(pendingRequest,'auth'),700);return;
   }
-  $('login button[type="submit"]').disabled=false;
+  document.querySelector('#login button[type="submit"]').disabled=false;
   if(!data||!data.ok){
     $('error').textContent=data&&data.error?data.error:'Unable to sign in.';
     stage('Sign-in request completed.');
@@ -63,7 +63,7 @@ $('login').addEventListener('submit',e=>{
   const username=$('user').value.trim(),password=$('pass').value;
   if(!username||!password)return;
   pendingRequest=rid();pollCount=0;pollStarted=Date.now();
-  $('login button[type="submit"]').disabled=true;
+  document.querySelector('#login button[type="submit"]').disabled=true;
   post({action:'authLogin',requestId:pendingRequest,username,password});
   setTimeout(()=>{stage('Checking sign-in result…');queryResult(pendingRequest,'auth')},900);
 });
