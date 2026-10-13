@@ -489,7 +489,10 @@ function refresh(){
 }
 btn.addEventListener('click',refresh);
 const standings=document.getElementById('bingo-refresh-btn');if(standings)standings.addEventListener('click',refresh);
-refresh();setInterval(()=>{if(document.visibilityState==='visible')refresh();},30000);
+refresh();setInterval(()=>{
+ if(document.visibilityState!=='visible')return;
+ if(document.getElementById('bingo')?.classList.contains('active')||document.getElementById('leaderboard')?.classList.contains('active'))refresh();
+},60000);
 })();
 </script><script id="sehc-employee-sheets-submit-v34">
 (function(){
@@ -546,7 +549,7 @@ window.SEHC_DEMO_BOARD_RECEIVE=function(data){ if(typeof prior==='function') pri
 function refresh(){
  boardStatus.textContent='Refreshing from Google Sheets…';
  const old=document.getElementById('sehc-employee-section-refresh');if(old)old.remove();
- const s=document.createElement('script');s.id='sehc-employee-section-refresh';s.src=API+'?action=demoBoard&format=jsonp&token='+encodeURIComponent(window.SEHC_AUTH_TOKEN||'')+'&t='+Date.now();s.onerror=()=>boardStatus.textContent='Unable to reach Google Sheets.';s.addEventListener('load',()=>setTimeout(()=>s.remove(),0),{once:true});document.head.appendChild(s);
+ const s=document.createElement('script');s.id='sehc-employee-section-refresh';s.src=API+'?action=demoBoard&format=jsonp&token='+encodeURIComponent(window.SEHC_AUTH_TOKEN||'')+'&t='+Date.now();s.onerror=()=>{boardStatus.textContent='Unable to reach Google Sheets.';s.remove()};s.addEventListener('load',()=>setTimeout(()=>s.remove(),0),{once:true});document.head.appendChild(s);
 }
 window.SEHCEmployeeSheetRefresh=refresh;
 boardRefresh.addEventListener('click',refresh);
@@ -560,7 +563,7 @@ setTimeout(refresh,500);
 </style>
 <script id="sehc-shared-draw-employee-v38">
 (function(){
-'use strict';const API="https://script.google.com/macros/s/AKfycbwsjW0VFilbJokuaNYWF-vU7JktoEnWsL4TLJ7u4MNH3W4pNv2d3VAhaT24bE3j2gXo/exec",POLL=1500;let lastSpin='',lastWinner='';
+'use strict';const API="https://script.google.com/macros/s/AKfycbwsjW0VFilbJokuaNYWF-vU7JktoEnWsL4TLJ7u4MNH3W4pNv2d3VAhaT24bE3j2gXo/exec";let lastSpin='',lastWinner='',inFlight=false,pollTimer=null;
 try{localStorage.removeItem('sehc-grand-draw-live-v12')}catch(e){}
 function targetAngle(state){const n=Math.max(1,state.poolCount||state.pool.length||1),sector=360/n;return 360*7+((360-(Number(state.winningIndex)+.5)*sector)%360+360)%360}
 function paintPool(state){try{if(Array.isArray(state.pool)&&state.pool.length){wheelPool=state.pool.slice();paintWheel(wheelPool);}}catch(e){}}
@@ -568,8 +571,32 @@ function animate(state){const rotor=document.getElementById('wheelArt');if(!roto
 function navLive(on){const b=document.querySelector('.nav[data-tab="wheel"]');if(!b)return;let d=b.querySelector('.live-dot');if(on&&!d){d=document.createElement('span');d.className='live-dot';d.textContent='LIVE';b.appendChild(d)}if(!on&&d)d.remove()}
 function celebrate(state){const o=document.getElementById('liveWinnerOverlay');if(o){o.querySelector('[data-winner]').textContent=state.winner;o.querySelector('[data-prize]').textContent='$'+state.prize+' GIFT CARD';o.classList.add('show');try{sehcCelebrationIcons()}catch(e){}}}
 window.SEHC_DRAW_RECEIVE=function(state){if(!state||state.ok!==true)return;const banner=document.getElementById('sharedEmployeeDraw');paintPool(state);if(state.status==='spinning'){navLive(true);if(banner){banner.className='live';banner.textContent='🔴 LIVE NOW · '+(state.mode==='automatic'?'Automatic':'Manual')+' Grand Draw · '+state.poolCount+' approved tickets';}animate(state)}else if(state.status==='winner'){navLive(false);if(banner){banner.className='winner';banner.textContent='🏆 TODAY\'S GRAND DRAW WINNER · '+state.winner+' · $'+state.prize+' Gift Card';}if(lastWinner!==state.drawId){lastWinner=state.drawId;celebrate(state)}}else{navLive(false);if(banner){banner.className='';banner.textContent='🎡 Grand Draw · '+(state.autoEnabled?'Automatic draw scheduled for 6:55 PM Eastern':'Manual draw mode')+' · '+state.poolCount+' approved tickets currently eligible';}}};
-function refresh(){const old=document.getElementById('sehc-employee-draw-jsonp-v38');if(old)old.remove();const s=document.createElement('script');s.id='sehc-employee-draw-jsonp-v38';s.src=API+'?action=demoDrawState&format=jsonp&token='+encodeURIComponent(window.SEHC_AUTH_TOKEN||'')+'&_='+Date.now();document.head.appendChild(s)}
-function setup(){document.getElementById('liveEmployeeBanner')?.setAttribute('style','display:none!important');const section=document.getElementById('wheel');if(section&&!document.getElementById('sharedEmployeeDraw')){const b=document.createElement('div');b.id='sharedEmployeeDraw';b.textContent='Connecting to the shared Grand Draw…';const card=section.querySelector('.card');card?.insertBefore(b,card.firstChild)}refresh();setInterval(refresh,POLL)}
+function wheelIsActive(){return document.getElementById('wheel')?.classList.contains('active')}
+function scheduleNext(delay){clearTimeout(pollTimer);pollTimer=setTimeout(poll,delay)}
+function refresh(){
+ if(inFlight||document.visibilityState!=='visible')return Promise.resolve();
+ inFlight=true;
+ return new Promise(resolve=>{
+  const old=document.getElementById('sehc-employee-draw-jsonp-v38');if(old)old.remove();
+  const s=document.createElement('script');s.id='sehc-employee-draw-jsonp-v38';
+  let done=false;
+  const finish=()=>{if(done)return;done=true;inFlight=false;s.remove();resolve()};
+  s.src=API+'?action=demoDrawState&format=jsonp&token='+encodeURIComponent(window.SEHC_AUTH_TOKEN||'')+'&_='+Date.now();
+  s.onload=()=>setTimeout(finish,0);s.onerror=finish;
+  document.head.appendChild(s);
+  setTimeout(finish,8000);
+ });
+}
+async function poll(){
+ if(document.visibilityState!=='visible'){scheduleNext(10000);return}
+ await refresh();
+ scheduleNext(wheelIsActive()?2500:30000);
+}
+function setup(){document.getElementById('liveEmployeeBanner')?.setAttribute('style','display:none!important');const section=document.getElementById('wheel');if(section&&!document.getElementById('sharedEmployeeDraw')){const b=document.createElement('div');b.id='sharedEmployeeDraw';b.textContent='Connecting to the shared Grand Draw…';const card=section.querySelector('.card');card?.insertBefore(b,card.firstChild)}
+ document.querySelector('[data-tab="wheel"]')?.addEventListener('click',()=>{scheduleNext(50)});
+ document.addEventListener('visibilitychange',()=>{if(document.visibilityState==='visible')scheduleNext(100)});
+ scheduleNext(100);
+}
 if(document.readyState==='loading')document.addEventListener('DOMContentLoaded',setup);else setup();
 })();
 </script><script id="sehc-employee-auth-bind">window.addEventListener('sehc-auth-ready',e=>{const u=e.detail||{};const who=document.getElementById('who');if(who)who.textContent=u.fullName+' · '+u.role;const box=document.querySelector('#signedInBingoIdentity span');if(box)box.textContent=u.fullName+' · '+u.employeeID;});</script>
@@ -612,7 +639,9 @@ if(document.readyState==='loading')document.addEventListener('DOMContentLoaded',
   window.SEHC_REFRESH_PENDING=loadPending;
   refresh?.addEventListener('click',loadPending);
   window.addEventListener('sehc-auth-ready',()=>setTimeout(loadPending,250));
-  setInterval(()=>{if(document.visibilityState==='visible')loadPending()},30000);
+  setInterval(()=>{
+ if(document.visibilityState==='visible'&&document.getElementById('bingo')?.classList.contains('active'))loadPending();
+},60000);
 })();
 </script>
 <script id="sehc-bingo-config-employee-v49">
