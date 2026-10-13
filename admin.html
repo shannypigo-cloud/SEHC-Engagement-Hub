@@ -448,21 +448,21 @@ const sehcDoLogout=function(){const n='logout'+Date.now(),f=document.createEleme
 <div class="panel">
   <h2>Monthly Employee Metrics</h2>
   <div class="fields">
-    <label>Eligibility Month
+    <label>Participation Month
       <input id="eligMonth" type="month">
     </label>
     <label>Employee
       <select id="eligEmployee"><option value="">Select employee</option></select>
     </label>
-    <label>Previous Month Connect Time %
+    <label>Connect Time % (Previous Month)
       <input id="eligConnect" type="number" min="0" max="100" step="0.1">
     </label>
-    <label>Previous Month Compliance %
+    <label>Compliance % (Previous Month)
       <input id="eligCompliance" type="number" min="0" max="100" step="0.1">
     </label>
-    <button id="eligSaveEmployee" type="button">Save Metrics</button>
+    <button id="eligQuickFill" class="alt" type="button">Fill Minimum Thresholds</button><button id="eligSaveEmployee" type="button">Save Metrics</button>
   </div>
-  <p id="eligEmployeeStatus" role="status"></p>
+  <p id="eligPeriodHelp" class="muted" style="margin:10px 0 4px"></p><p id="eligEmployeeStatus" role="status"></p>
 </div>
 
 <div class="panel">
@@ -984,64 +984,72 @@ const d=new Date().toLocaleDateString('en-CA');if($('contestStart'))$('contestSt
 })();
 </script>
 
-<script id="sehc-eligibility-admin-v53">
+<script id="sehc-eligibility-admin-v54">
 (function(){
 const API='https://script.google.com/macros/s/AKfycbwsjW0VFilbJokuaNYWF-vU7JktoEnWsL4TLJ7u4MNH3W4pNv2d3VAhaT24bE3j2gXo/exec';
 const $=id=>document.getElementById(id);
-let snapshot=null;
+let snapshot=null,pendingCommand=null,afterLoad=null;
 function esc(s){return String(s??'').replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]))}
 function currentMonth(){const d=new Date();return d.getFullYear()+'-'+String(d.getMonth()+1).padStart(2,'0')}
+function monthLabel(key){if(!/^\d{4}-\d{2}$/.test(key||''))return key||'';const [y,m]=key.split('-').map(Number);return new Intl.DateTimeFormat('en-US',{month:'long',year:'numeric'}).format(new Date(y,m-1,1))}
+function previousMonthLabel(key){if(!/^\d{4}-\d{2}$/.test(key||''))return '';const [y,m]=key.split('-').map(Number);return new Intl.DateTimeFormat('en-US',{month:'long',year:'numeric'}).format(new Date(y,m-2,1))}
 function badge(status){const c=status==='Eligible'?'elig-ok':status==='Not Eligible'?'elig-no':'elig-pending';return '<span class="elig-badge '+c+'">'+esc(status)+'</span>'}
 function render(data){
   snapshot=data;
-  const cfg=data.config||{};
-  $('eligConnectMin').value=cfg.connectMin??55;
-  $('eligComplianceMin').value=cfg.complianceMin??90;
-  const rows=data.employees||[];
+  const cfg=data.config||{},rows=data.employees||[];
+  $('eligConnectMin').value=cfg.connectMin??55;$('eligComplianceMin').value=cfg.complianceMin??90;
+  const selected=$('eligEmployee').value;
   $('eligEmployee').innerHTML='<option value="">Select employee</option>'+rows.map(x=>'<option value="'+esc(x.employeeID)+'">'+esc(x.fullName)+' · '+esc(x.employeeID)+'</option>').join('');
+  if(selected&&rows.some(x=>x.employeeID===selected))$('eligEmployee').value=selected;
   const eligible=rows.filter(x=>x.status==='Eligible').length,not=rows.filter(x=>x.status==='Not Eligible').length,pending=rows.filter(x=>x.status==='Pending Verification').length;
   $('eligSummary').innerHTML='<div class="stat"><strong>'+eligible+'</strong><small>Eligible</small></div><div class="stat"><strong>'+not+'</strong><small>Not Eligible</small></div><div class="stat"><strong>'+pending+'</strong><small>Pending Verification</small></div>';
-  $('eligRoster').innerHTML='<div class="elig-row elig-head"><div>Employee</div><div>Connect Time</div><div>Compliance</div><div>Status</div><div>Updated By</div><div>Updated At</div></div>'+
-  rows.map(x=>'<div class="elig-row"><div><b>'+esc(x.fullName)+'</b><br><small>'+esc(x.employeeID)+(x.team?' · '+esc(x.team):'')+'</small></div><div>'+(x.connectTimePct==null?'—':esc(x.connectTimePct)+'%')+'</div><div>'+(x.compliancePct==null?'—':esc(x.compliancePct)+'%')+'</div><div>'+badge(x.status)+'</div><div>'+esc(x.updatedBy||'—')+'</div><div>'+esc(x.updatedAt||'—')+'</div></div>').join('');
-  const u=window.SEHC_CURRENT_USER||{};
-  const canAdmin=u.role==='Administrator';
+  $('eligRoster').innerHTML='<div class="elig-row elig-head"><div>Employee</div><div>Connect Time</div><div>Compliance</div><div>Status</div><div>Updated By</div><div>Updated At</div></div>'+rows.map(x=>'<div class="elig-row"><div><b>'+esc(x.fullName)+'</b><br><small>'+esc(x.employeeID)+(x.team?' · '+esc(x.team):'')+'</small></div><div>'+(x.connectTimePct==null?'—':esc(x.connectTimePct)+'%')+'</div><div>'+(x.compliancePct==null?'—':esc(x.compliancePct)+'%')+'</div><div>'+badge(x.status)+'</div><div>'+esc(x.updatedBy||'—')+'</div><div>'+esc(x.updatedAt||'—')+'</div></div>').join('');
+  const u=window.SEHC_CURRENT_USER||{},canAdmin=u.role==='Administrator';
   $('eligSaveSettings').disabled=!canAdmin;$('eligConnectMin').disabled=!canAdmin;$('eligComplianceMin').disabled=!canAdmin;
+  const month=data.month||$('eligMonth').value;
+  $('eligPeriodHelp').textContent='Participation in '+monthLabel(month)+' is determined using '+previousMonthLabel(month)+' performance metrics.';
+  $('eligEmployeeStatus').textContent=rows.length===1?'1 employee loaded for '+monthLabel(month)+'.':rows.length+' employees loaded for '+monthLabel(month)+'.';
+  if(afterLoad){const cb=afterLoad;afterLoad=null;cb(data)}
 }
-window.SEHC_ELIGIBILITY_ADMIN_RECEIVE=function(data){
-  if(!data||!data.ok){$('eligEmployeeStatus').textContent=data&&data.error?data.error:'Unable to load eligibility data.';return}
-  render(data);$('eligEmployeeStatus').textContent='Loaded '+(data.employees||[]).length+' employees for '+data.month+'.';
-};
-function load(){
+window.SEHC_ELIGIBILITY_ADMIN_RECEIVE=function(data){if(!data||!data.ok){$('eligEmployeeStatus').textContent=data&&data.error?data.error:'Unable to load eligibility data.';return}render(data)};
+function load(done){
+  if(done)afterLoad=done;
   const month=$('eligMonth').value||currentMonth();
-  const s=document.createElement('script');s.src=API+'?action=eligibilityAdmin&format=jsonp&token='+encodeURIComponent(window.SEHC_AUTH_TOKEN||'')+'&month='+encodeURIComponent(month)+'&_='+Date.now();
-  s.onload=()=>setTimeout(()=>s.remove(),0);document.head.appendChild(s);
+  const old=document.getElementById('sehc-elig-admin-load');if(old)old.remove();
+  const s=document.createElement('script');s.id='sehc-elig-admin-load';s.src=API+'?action=eligibilityAdmin&format=jsonp&token='+encodeURIComponent(window.SEHC_AUTH_TOKEN||'')+'&month='+encodeURIComponent(month)+'&_='+Date.now();
+  s.onerror=()=>{$('eligEmployeeStatus').textContent='Could not reach Google Sheets / Apps Script.';s.remove()};s.onload=()=>setTimeout(()=>s.remove(),0);document.head.appendChild(s);
 }
-function post(fields,done){
-  fields.token=window.SEHC_AUTH_TOKEN||'';fields.requestId='el'+Date.now().toString(36)+Math.random().toString(36).slice(2);
+function requestId(){return 'elig'+Date.now().toString(36)+Math.random().toString(36).slice(2)+Math.random().toString(36).slice(2)}
+function submitCommand(fields,onResult){
+  const id=requestId();pendingCommand={id,onResult,started:Date.now()};fields.token=window.SEHC_AUTH_TOKEN||'';fields.requestId=id;
   const n='elig-post-'+Date.now(),i=document.createElement('iframe'),f=document.createElement('form');i.name=n;i.style.display='none';document.body.appendChild(i);f.method='POST';f.action=API;f.target=n;f.style.display='none';
-  Object.entries(fields).forEach(([k,v])=>{const x=document.createElement('input');x.type='hidden';x.name=k;x.value=String(v);f.appendChild(x)});document.body.appendChild(f);f.submit();setTimeout(()=>{f.remove();i.remove();done&&done()},1200)
+  Object.entries(fields).forEach(([k,v])=>{const x=document.createElement('input');x.type='hidden';x.name=k;x.value=String(v);f.appendChild(x)});document.body.appendChild(f);f.submit();setTimeout(()=>pollResult(id),550);setTimeout(()=>{f.remove();i.remove()},6000)
 }
+function pollResult(id){
+  if(!pendingCommand||pendingCommand.id!==id)return;
+  if(Date.now()-pendingCommand.started>20000){const cb=pendingCommand.onResult;pendingCommand=null;cb({ok:false,error:'Save timed out. No success was assumed. Please try again.'});return}
+  const old=document.getElementById('sehc-elig-result');if(old)old.remove();
+  const s=document.createElement('script');s.id='sehc-elig-result';s.src=API+'?action=eligibilityResult&requestId='+encodeURIComponent(id)+'&_='+Date.now();s.onerror=()=>setTimeout(()=>pollResult(id),800);s.onload=()=>setTimeout(()=>s.remove(),0);document.head.appendChild(s)
+}
+window.SEHC_ELIGIBILITY_COMMAND_RECEIVE=function(data){if(!pendingCommand)return;if(data&&data.pending){setTimeout(()=>pollResult(pendingCommand.id),650);return}const cb=pendingCommand.onResult;pendingCommand=null;cb(data||{ok:false,error:'No response from backend.'})};
 $('eligSaveSettings').onclick=()=>{
-  const connectMin=+$('eligConnectMin').value,complianceMin=+$('eligComplianceMin').value;
-  $('eligSettingsStatus').textContent='Saving thresholds…';
-  post({action:'adminSaveEligibilityConfig',connectMin,complianceMin},()=>{setTimeout(load,250);$('eligSettingsStatus').textContent='Thresholds saved.'});
+  const connectMin=+$('eligConnectMin').value,complianceMin=+$('eligComplianceMin').value;$('eligSettingsStatus').textContent='Saving thresholds…';$('eligSaveSettings').disabled=true;
+  submitCommand({action:'adminSaveEligibilityConfig',connectMin,complianceMin},result=>{if(!result||!result.ok){$('eligSettingsStatus').textContent='Not saved: '+(result&&result.error?result.error:'Unknown error');$('eligSaveSettings').disabled=false;return}load(()=>{$('eligSettingsStatus').textContent='Thresholds saved and verified.';$('eligSaveSettings').disabled=false})});
 };
+$('eligQuickFill').onclick=()=>{$('eligConnect').value=$('eligConnectMin').value||55;$('eligCompliance').value=$('eligComplianceMin').value||90;$('eligEmployeeStatus').textContent='Minimum thresholds filled in. Review and click Save Metrics.'};
 $('eligSaveEmployee').onclick=()=>{
-  const employeeID=$('eligEmployee').value,month=$('eligMonth').value,connectTimePct=+$('eligConnect').value,compliancePct=+$('eligCompliance').value;
-  if(!employeeID)return alert('Select an employee.');if(!month)return alert('Select an eligibility month.');
-  if(connectTimePct<0||connectTimePct>100||compliancePct<0||compliancePct>100)return alert('Metrics must be between 0 and 100.');
-  $('eligEmployeeStatus').textContent='Saving employee metrics…';
-  post({action:'adminUpsertEligibility',employeeID,month,connectTimePct,compliancePct},()=>{setTimeout(load,250);$('eligEmployeeStatus').textContent='Metrics saved.'});
+  const employeeID=$('eligEmployee').value,month=$('eligMonth').value,connectRaw=$('eligConnect').value,complianceRaw=$('eligCompliance').value;
+  if(!employeeID)return alert('Select an employee.');if(!month)return alert('Select a participation month.');if(connectRaw===''||complianceRaw==='')return alert('Enter both Connect Time and Compliance.');
+  const connectTimePct=Number(connectRaw),compliancePct=Number(complianceRaw);
+  if(!Number.isFinite(connectTimePct)||connectTimePct<0||connectTimePct>100||!Number.isFinite(compliancePct)||compliancePct<0||compliancePct>100)return alert('Metrics must be between 0 and 100.');
+  $('eligSaveEmployee').disabled=true;$('eligEmployeeStatus').textContent='Saving to Google Sheets…';
+  submitCommand({action:'adminUpsertEligibility',employeeID,month,connectTimePct,compliancePct},result=>{
+    if(!result||!result.ok){$('eligEmployeeStatus').textContent='NOT SAVED: '+(result&&result.error?result.error:'Unknown backend error');$('eligSaveEmployee').disabled=false;return}
+    load(data=>{const row=(data.employees||[]).find(x=>x.employeeID===employeeID);const verified=row&&Number(row.connectTimePct)===connectTimePct&&Number(row.compliancePct)===compliancePct;$('eligEmployee').value=employeeID;$('eligConnect').value=connectTimePct;$('eligCompliance').value=compliancePct;$('eligEmployeeStatus').textContent=verified?'Saved and verified in Google Sheets · '+row.status:'Backend reported success, but the roster could not verify the saved values.';$('eligSaveEmployee').disabled=false})
+  });
 };
-$('eligEmployee').addEventListener('change',()=>{
-  if(!snapshot)return;const x=(snapshot.employees||[]).find(e=>e.employeeID===$('eligEmployee').value);
-  $('eligConnect').value=x&&x.connectTimePct!=null?x.connectTimePct:'';
-  $('eligCompliance').value=x&&x.compliancePct!=null?x.compliancePct:'';
-});
-$('eligMonth').addEventListener('change',load);$('eligRefresh').onclick=load;
-document.querySelector('button[onclick="go(\'eligibility\')"]')?.addEventListener('click',()=>setTimeout(load,60));
-$('eligMonth').value=currentMonth();
-window.addEventListener('sehc-auth-ready',()=>setTimeout(load,100));
+$('eligEmployee').addEventListener('change',()=>{if(!snapshot)return;const x=(snapshot.employees||[]).find(e=>e.employeeID===$('eligEmployee').value);$('eligConnect').value=x&&x.connectTimePct!=null?x.connectTimePct:'';$('eligCompliance').value=x&&x.compliancePct!=null?x.compliancePct:''});
+$('eligMonth').addEventListener('change',()=>load());$('eligRefresh').onclick=()=>load();document.querySelector('button[onclick="go(\'eligibility\')"]')?.addEventListener('click',()=>setTimeout(()=>load(),60));$('eligMonth').value=currentMonth();window.addEventListener('sehc-auth-ready',()=>setTimeout(()=>load(),100));
 })();
 </script>
 </body></html>
