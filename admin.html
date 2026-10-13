@@ -418,6 +418,16 @@ function load(){document.getElementById('umStatus').textContent='Refreshing user
 window.SEHC_USERS_RECEIVE=function(d){if(!d||!d.ok){document.getElementById('umStatus').textContent=d&&d.error?d.error:'Unable to load users.';return}viewer=d.viewer;users=d.users||[];document.getElementById('umStatus').textContent=users.length+' account(s) visible · Signed in as '+viewer.role;document.getElementById('userCreatePanel').style.display=viewer.role==='Administrator'?'block':'none';render()};
 function render(){const host=document.getElementById('umUsers');host.innerHTML='';if(!users.length){host.textContent='No accounts available.';return}users.forEach(u=>{const row=document.createElement('div');row.className='um-row';const canEdit=viewer.role==='Administrator';row.innerHTML='<div><b>'+esc(u.fullName)+'</b><div class="um-meta">'+esc(u.employeeID)+' · @'+esc(u.username)+'</div></div><div>'+esc(u.role)+'</div><div>'+esc(u.status)+'</div><div>'+esc(u.team||'—')+'</div><div class="um-actions"></div>';const actions=row.querySelector('.um-actions');const reset=document.createElement('button');reset.type='button';reset.textContent='Reset Password';reset.onclick=()=>post({action:'adminResetPassword',userID:u.userID},d=>{if(!d||!d.ok)return alert(d&&d.error?d.error:'Reset failed');alert('Temporary password for '+u.fullName+':\\n\\n'+d.tempPassword+'\\n\\nCopy this now. The employee must change it at next sign-in.')});actions.append(reset);if(canEdit){const edit=document.createElement('button');edit.type='button';edit.className='alt';edit.textContent='Edit Role / Status';edit.onclick=()=>{const role=prompt('Role: Administrator, Supervisor, or Employee',u.role);if(!role)return;const status=prompt('Status: Active or Inactive',u.status);if(!status)return;const team=prompt('Team',u.team||'')??u.team;post({action:'adminUpdateUser',userID:u.userID,role,status,team},d=>{if(!d||!d.ok)return alert(d&&d.error?d.error:'Update failed');load()})};actions.append(edit)}host.append(row)})}
 
+
+function resetCreateUserForm(){
+  document.getElementById('umFullName').value='';
+  document.getElementById('umUsername').value='';
+  document.getElementById('umEmail').value='';
+  document.getElementById('umRole').value='Employee';
+  document.getElementById('umTeam').value='EBO';
+  updateIdPreview();
+}
+
 function updateIdPreview(){
   const role=document.getElementById('umRole').value;
   const prefix=role==='Administrator'?'ADM':role==='Supervisor'?'SUP':'EMP';
@@ -426,8 +436,19 @@ function updateIdPreview(){
 document.getElementById('umRole').addEventListener('change',updateIdPreview);
 updateIdPreview();
 
+
+['umFullName','umUsername','umEmail','umRole','umTeam'].forEach(id=>{
+  document.getElementById(id).addEventListener('input',()=>{
+    const box=document.getElementById('umCreateResult');
+    if(box.style.display!=='none'){
+      box.style.display='none';
+      box.innerHTML='';
+    }
+  });
+});
+
 document.getElementById('umRefresh').onclick=load;
-document.getElementById('umCreate').onclick=function(){const fields={action:'adminCreateUser',fullName:document.getElementById('umFullName').value.trim(),username:document.getElementById('umUsername').value.trim(),email:document.getElementById('umEmail').value.trim(),role:document.getElementById('umRole').value,team:document.getElementById('umTeam').value.trim()};post(fields,d=>{const box=document.getElementById('umCreateResult');box.style.display='block';if(!d||!d.ok){box.textContent=d&&d.error?d.error:'Unable to create account.';return}box.innerHTML='<b>Account created.</b><br>Employee ID: <code style="font-size:16px">'+esc(d.user.employeeID)+'</code><br>Temporary password: <code style="font-size:16px">'+esc(d.tempPassword)+'</code><br><small>Copy the temporary password now. It is not stored in readable form.</small>';load()})};
+document.getElementById('umCreate').onclick=function(){const fields={action:'adminCreateUser',fullName:document.getElementById('umFullName').value.trim(),username:document.getElementById('umUsername').value.trim(),email:document.getElementById('umEmail').value.trim(),role:document.getElementById('umRole').value,team:document.getElementById('umTeam').value.trim()};post(fields,d=>{const box=document.getElementById('umCreateResult');box.style.display='block';if(!d||!d.ok){box.textContent=d&&d.error?d.error:'Unable to create account.';return}box.innerHTML='<b>Account created.</b><br>Employee ID: <code style="font-size:16px">'+esc(d.user.employeeID)+'</code><br>Temporary password: <code style="font-size:16px">'+esc(d.tempPassword)+'</code><br><small>Copy the temporary password now. It is not stored in readable form.</small>';resetCreateUserForm();load()})};
 window.addEventListener('sehc-auth-ready',e=>{const u=e.detail||{};if(!['Administrator','Supervisor'].includes(u.role)){location.replace('employee.html');return}load()});
 })();
 </script></body></html>
