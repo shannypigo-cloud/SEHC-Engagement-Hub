@@ -221,7 +221,7 @@ const sehcDoLogout=function(){const n='logout'+Date.now(),f=document.createEleme
 <div class="card" style="margin-bottom:15px">
 <h2>Submit an activity</h2>
 <p class="muted">Your employee identity is supplied automatically from your signed-in account.</p>
-<div class="note" id="signedInBingoIdentity"><strong>Signed-in employee</strong><br><span>Loading account…</span></div><div class="formgrid" style="margin:14px 0">
+<div class="note" id="signedInBingoIdentity"><strong>Signed-in employee</strong><br><span>Loading account…</span></div><div class="note" id="employeeEligibilityBanner" style="margin-top:10px"><strong>Monthly Eligibility</strong><br><span>Checking eligibility…</span></div><div class="formgrid" style="margin:14px 0">
 <label class="field">Account / Reference Number
 <input id="accountReference" maxlength="80" autocomplete="off" placeholder="Enter account or reference number" required>
 </label>
@@ -504,6 +504,7 @@ submitBtn.onclick=function(){
  if(!selected)return alert('Select a Daily Bingo category.');
  const tickets=Number(selected.tickets)||1;
  if(!window.SEHC_CURRENT_USER)return alert('Your session is still loading. Please try again.');
+ if(window.SEHC_EMPLOYEE_ELIGIBLE!==true)return alert('You are not currently eligible for Daily Bingo. Please contact your supervisor if your monthly metrics need to be reviewed.');
  if(!accountReference)return alert('Enter the account / reference number so the supervisor can verify the activity.');
  submitStatus.textContent='Sending to Google Sheets…'; submitBtn.disabled=true;
  post({action:'demoSubmit',token:window.SEHC_AUTH_TOKEN,accountReference,category,tickets});
@@ -631,4 +632,24 @@ window.addEventListener('sehc-auth-ready',load);
 document.querySelector('[data-tab="wallet"]')?.addEventListener('click',load);
 load();
 })();
-</script></body></html>
+</script>
+<script id="sehc-employee-eligibility-v53">
+(function(){
+const API='https://script.google.com/macros/s/AKfycbwsjW0VFilbJokuaNYWF-vU7JktoEnWsL4TLJ7u4MNH3W4pNv2d3VAhaT24bE3j2gXo/exec';
+const box=document.getElementById('employeeEligibilityBanner'),btn=document.getElementById('submitEntry');
+window.SEHC_ELIGIBILITY_STATUS_RECEIVE=function(data){
+  if(!data||!data.ok){box.innerHTML='<strong>Monthly Eligibility</strong><br><span>Unable to verify eligibility.</span>';if(btn)btn.disabled=true;window.SEHC_EMPLOYEE_ELIGIBLE=false;return}
+  const e=data.eligibility||{},cfg=e.config||{};
+  window.SEHC_EMPLOYEE_ELIGIBLE=!!e.eligible;
+  const connect=e.connectTimePct==null?'Pending':e.connectTimePct+'%';
+  const compliance=e.compliancePct==null?'Pending':e.compliancePct+'%';
+  box.style.borderColor=e.status==='Eligible'?'#79c89d':e.status==='Not Eligible'?'#e6a1a1':'#e1c979';
+  box.style.background=e.status==='Eligible'?'#edf9f2':e.status==='Not Eligible'?'#fff1f1':'#fff9e7';
+  box.innerHTML='<strong>Monthly Eligibility · '+e.status+'</strong><br><span>Previous Month Connect Time: '+connect+' (Min. '+cfg.connectMin+'%) · Compliance: '+compliance+' (Min. '+cfg.complianceMin+'%)</span>';
+  if(btn){btn.disabled=!e.eligible;btn.title=e.eligible?'':'Daily Bingo participation requires monthly eligibility.'}
+};
+function load(){const s=document.createElement('script');s.src=API+'?action=eligibilityStatus&format=jsonp&token='+encodeURIComponent(window.SEHC_AUTH_TOKEN||'')+'&_='+Date.now();s.onload=()=>setTimeout(()=>s.remove(),0);document.head.appendChild(s)}
+window.addEventListener('sehc-auth-ready',()=>setTimeout(load,80));document.querySelector('[data-tab="bingo"]')?.addEventListener('click',load);load();
+})();
+</script>
+</body></html>
