@@ -212,13 +212,8 @@ document.getElementById('sehcLogout').onclick=function(){const n='logout'+Date.n
 <div class="formgrid">
 <div class="field bingo-category-field">
 <span class="bingo-field-title">Select your Daily Bingo category</span>
-<div aria-label="Bingo category" class="bingo-category-grid" role="radiogroup">
-<label class="bingo-category-card"><input name="bingo-category" type="radio" value="0"/><span class="bingo-category-icon">👾</span><span class="bingo-category-copy"><strong>Monster Money</strong><small>Settlement in Full · $300+</small></span><span class="bingo-category-check">✓</span></label>
-<label class="bingo-category-card selected"><input checked="" name="bingo-category" type="radio" value="1"/><span class="bingo-category-icon">🍬</span><span class="bingo-category-copy"><strong>Candy Crush</strong><small>Payment · $200+</small></span><span class="bingo-category-check">✓</span></label>
-<label class="bingo-category-card"><input name="bingo-category" type="radio" value="2"/><span class="bingo-category-icon">👻</span><span class="bingo-category-copy"><strong>Ghost Payments</strong><small>5 payments</small></span><span class="bingo-category-check">✓</span></label>
-<label class="bingo-category-card"><input name="bingo-category" type="radio" value="3"/><span class="bingo-category-icon">🪄</span><span class="bingo-category-copy"><strong>Witch Magic</strong><small>Every $500 · 2 drawing tickets</small></span><span class="bingo-category-check">✓</span></label>
-</div>
-<input id="category" type="hidden" value="-1"/>
+<div aria-label="Bingo category" class="bingo-category-grid" id="dynamic-bingo-category-grid" role="radiogroup"><div class="muted">Loading Daily Bingo categories…</div></div>
+<input id="category" type="hidden" value=""/>
 </div>
 <div class="field" style="align-content:end">
 <div class="note"><strong>Connected workflow</strong><br/>Submission → Google Sheets → Supervisor Approval → Daily Board</div>
@@ -261,7 +256,7 @@ function tab(t){document.querySelectorAll('.section').forEach(x=>x.classList.tog
 function tickets(){return db.entries.filter(x=>x.status==='approved'&&x.date===today).flatMap(x=>Array(x.tickets).fill(x.name))}function render(){let t=tickets();$('mwallet').textContent=available();$('mtickets').textContent=t.length;$('mpending').textContent=db.entries.filter(x=>x.status==='pending').length+db.games.filter(x=>x.status==='pending').length;$('walletBalance').textContent=available();$('walletEarned').textContent=db.ledger.filter(x=>x.delta>0).reduce((a,x)=>a+x.delta,0);$('walletReserved').textContent=pendingRedeem();$('board').innerHTML=names.map((n,i)=>'<div class="boardcol"><div class="boardhead">'+escapeHtml(n)+'<small>'+targets[i]+'</small></div>'+db.entries.filter(x=>x.cat===i&&x.status==='approved'&&x.date===today).map(x=>'<div class="boardentry">'+escapeHtml(x.name)+(x.tickets===2?' ×2':'')+'</div>').join('')+'</div>').join('');let queue=[...db.entries.filter(x=>x.status==='pending').map(x=>({...x,kind:'entry'})),...db.games.filter(x=>x.status==='pending').map(x=>({...x,kind:'game'}))];$('queue').innerHTML=queue.map(x=>'<div class="item"><div><b>'+escapeHtml(x.name)+'</b><div class="muted">'+(x.kind==='entry'?names[x.cat]+' · '+x.tickets+' ticket(s) · '+escapeHtml(x.ref):'Arcade '+escapeHtml(x.mode)+' · '+x.score+' score → '+x.points+' wallet points')+'</div></div><div><button class="btn" onclick="approve(\''+x.kind+'\',\''+x.id+'\',true)">Approve</button> <button class="btn alt" onclick="approve(\''+x.kind+'\',\''+x.id+'\',false)">Reject</button></div></div>').join('')||'<p>No pending approvals.</p>';$('ledger').innerHTML=db.ledger.slice().reverse().map(x=>'<div class="item"><span>'+escapeHtml(x.reason)+'</span><b>'+((x.delta>0)?'+':'')+x.delta+' pts</b></div>').join('')||'<p>No wallet transactions yet.</p>';$('redeemQueue').innerHTML=db.redemptions.filter(x=>x.status==='pending').map(x=>'<div class="item"><div><b>'+escapeHtml(x.name)+'</b><div class="muted">'+escapeHtml(x.reward)+' · '+x.cost+' points</div></div><div><button class="btn" onclick="fulfill(\''+x.id+'\',true)">Approve</button> <button class="btn alt" onclick="fulfill(\''+x.id+'\',false)">Reject</button></div></div>').join('')||'<p>No pending reward requests.</p>';renderRewards();$('myRedemptions').innerHTML=db.redemptions.filter(x=>x.name==='Ninfa').slice().reverse().map(x=>'<div class="item"><b>'+escapeHtml(x.reward)+'</b><span class="tag">'+escapeHtml(x.status)+'</span></div>').join('')||'<p>No redemption requests yet.</p>'}
 document.querySelectorAll('input[name="bingo-category"]').forEach(r=>r.addEventListener('change',()=>{if(!r.checked)return;$('category').value=r.value;document.querySelectorAll('.bingo-category-card').forEach(c=>c.classList.toggle('selected',c.querySelector('input').checked));}));
 $('submitEntry').onclick=null;
-const catalog=JSON.parse(localStorage.getItem('sehc-reward-config')||'null')||[{name:'Coffee Treat',cost:100,emoji:'☕'},{name:'Team Lunch',cost:300,emoji:'🍱'},{name:'Inbound Only · 1 Hour',cost:500,emoji:'🎧'},{name:'Shift Flex Request',cost:650,emoji:'🕒'},{name:'PTO Request',cost:1500,emoji:'🌴'}];function renderRewards(){$('rewards').innerHTML=catalog.map((x,i)=>'<div class="reward"><div style="font-size:30px">'+x.emoji+'</div><strong>'+x.name+'</strong><small>'+x.cost+' wallet points · Approval required</small><button class="btn alt" '+(available()<x.cost?'disabled':'')+' onclick="redeem('+i+')">Request Redemption</button></div>').join('')}function redeem(i){let x=catalog[i];if(available()<x.cost)return;db.redemptions.push({id:id(),name:'Ninfa',reward:x.name,cost:x.cost,status:'pending',created:new Date().toISOString()});save();render();alert('Reward request submitted for approval.')};
+let catalog=window.SEHC_REWARD_CONFIG||[{id:'reward-coffee',name:'Coffee Treat',description:'Coffee or beverage reward',cost:500,emoji:'☕',active:true},{id:'reward-lunch',name:'Team Lunch',description:'Company-sponsored team lunch reward',cost:1500,emoji:'🍱',active:true},{id:'reward-inbound',name:'Inbound Only · 1 Hour',description:'One approved hour assigned to inbound-only work',cost:2500,emoji:'🎧',active:true},{id:'reward-flex',name:'Shift Flex Request',description:'Request an approved shift-flex option',cost:3500,emoji:'🕒',active:true},{id:'reward-pto',name:'PTO Request',description:'Request a PTO reward subject to operational approval',cost:7500,emoji:'🌴',active:true}];function renderRewards(){$('rewards').innerHTML=catalog.map((x,i)=>({...x,_i:i})).filter(x=>x.active!==false).map(x=>'<div class="reward"><div style="font-size:30px">'+escapeHtml(x.emoji||'🎁')+'</div><strong>'+escapeHtml(x.name)+'</strong><small>'+Number(x.cost).toLocaleString()+' wallet points · Approval required</small>'+(x.description?'<small>'+escapeHtml(x.description)+'</small>':'')+'<button class="btn alt" '+(available()<x.cost?'disabled':'')+' onclick="redeem('+x._i+')">Request Redemption</button></div>').join('')||'<p>No rewards are currently available.</p>'}function redeem(i){let x=catalog[i];if(available()<x.cost)return;db.redemptions.push({id:id(),name:'Ninfa',reward:x.name,cost:x.cost,status:'pending',created:new Date().toISOString()});save();render();alert('Reward request submitted for approval.')};
 function fromBase64(b64){const bytes=Uint8Array.from(atob(b64),c=>c.charCodeAt(0));return new TextDecoder().decode(bytes)}$('loadGame').onclick=()=>{if($('arcadeFrame'))return;let f=document.createElement('iframe');f.id='arcadeFrame';f.className='gameframe';f.title='Southeastern Learning Arcade';f.srcdoc=fromBase64(arcade64);$('gameholder').replaceChildren(f)};window.addEventListener('message',e=>{if(e.source!==$('arcadeFrame')?.contentWindow||!e.data||e.data.type!=='EBO_ARCADE_FINISH')return;let mode=String(e.data.mode).slice(0,35),score=Math.max(0,Math.floor(Number(e.data.score)||0));let already=db.games.some(x=>x.mode===mode&&x.date===today&&x.status!=='rejected');if(already){alert('Only one point claim per game per day in this demo.');return}let points=Math.min(100,Math.floor(score/100));if(!points)return;db.games.push({id:id(),name:'Ninfa',mode,score,points,date:today,status:'pending',created:new Date().toISOString()});save();render();alert('Game completed! '+points+' wallet points pending supervisor approval.')});
 // Mix tickets without changing the number of chances for each person.
 function mixTickets(pool){
@@ -372,7 +367,7 @@ window.SEHCLeaderboard={getTheme,draw,save(t){try{localStorage.setItem(key,JSON.
 </script><script>(function(){const el=document.getElementById('lb-employee'),s=el.querySelector('[data-period]');function update(){SEHCLeaderboard.draw('lb-employee',s.value==='month'?new Date().toISOString().slice(0,7):'all')}s.addEventListener('change',update);document.querySelector('[data-tab="leaderboard"]').addEventListener('click',update);window.addEventListener('storage',update);update()})();</script>
 <script id="sehc-bingo-ranking-v28-js">
 (function(){
-const KEY='sehc-engagement-v5-demo', names=['Monster Money','Candy Crush','Ghost Payments','Witch Magic'];
+const KEY='sehc-engagement-v5-demo';let names=(window.SEHC_CATEGORY_NAMES||['Monster Money','Candy Crush','Ghost Payments','Witch Magic']).slice();window.addEventListener('sehc-bingo-config',e=>{names=(e.detail||[]).filter(x=>x.active).map(x=>x.name);if(window.SEHCBingoRankingRefresh)window.SEHCBingoRankingRefresh()});
 function localDay(d){if(!d)return '';const m=String(d).match(/^(\d{4})-(\d{2})-(\d{2})/);if(m)return m[0];const t=new Date(d);if(Number.isNaN(t.getTime()))return '';return t.getFullYear()+'-'+String(t.getMonth()+1).padStart(2,'0')+'-'+String(t.getDate()).padStart(2,'0')}
 function today(){return window.SEHC_SHEETS_DATE||localDay(new Date())}
 function esc(s){return String(s).replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]))}
@@ -386,10 +381,11 @@ const sorted=[...rank.values()].sort((a,b)=>b.tickets-a.tickets||a.name.localeCo
 const root=document.getElementById('bingo-employee');if(!root)return;
 root.querySelector('[data-bingo-total]').textContent=total;root.querySelector('[data-bingo-players]').textContent=sorted.length;root.querySelector('[data-bingo-pending]').textContent=pending.length;
 root.querySelector('[data-bingo-list]').innerHTML=sorted.length?sorted.map((r,i)=>'<div class="bingo-person"><div class="bingo-person-head"><span class="bingo-place">'+(i===0?'🏆':i===1?'🥈':i===2?'🥉':'#'+(i+1))+'</span><div class="bingo-person-name"><strong>'+esc(r.name)+'</strong><small>'+r.entries+' approved '+(r.entries===1?'entry':'entries')+' · '+r.categories.map((n,k)=>n?esc(names[k])+': '+n:'').filter(Boolean).join(' · ')+'</small></div><div class="bingo-ticket-count">'+r.tickets+' <small>'+ (r.tickets===1?'ticket':'tickets')+'</small></div></div><div class="bingo-track"><div style="width:'+Math.max(3,100*r.tickets/Math.max(1,sorted[0].tickets))+'%"></div></div></div>').join(''):'<div class="bingo-empty">No approved Bingo tickets found for today in this browser. If tickets were approved in the Admin Portal, check the data connection message below.</div>';
+const gridStyle='grid-template-columns:minmax(175px,1.7fr) repeat('+names.length+',minmax(105px,1fr)) minmax(95px,.9fr)';
 root.querySelector('#bingo-visual-chart').innerHTML=
-'<div class="bingo-matrix-header"><div>MEMBER</div><div>MONSTER MONEY</div><div>CANDY CRUSH</div><div>GHOST PAYMENTS</div><div>WITCH MAGIC</div><div>TOTAL TICKETS</div></div>'+
+'<div class="bingo-matrix-header" style="'+gridStyle+'"><div>MEMBER</div><div>MONSTER MONEY</div><div>CANDY CRUSH</div><div>GHOST PAYMENTS</div><div>WITCH MAGIC</div><div>TOTAL TICKETS</div></div>'+
 (sorted.length?'<div class="bingo-matrix-rows">'+sorted.map((r,i)=>'<div class="bingo-matrix-row"><div class="bingo-matrix-member"><span class="bingo-matrix-rank">#'+(i+1)+'</span><strong>'+esc(r.name)+'</strong></div>'+r.categories.map((n,k)=>'<div class="bingo-matrix-value cat-'+k+'">'+(n?'<span class="bingo-matrix-mark">'+n+'</span>':'<span class="bingo-matrix-dash">—</span>')+'</div>').join('')+'<div class="bingo-matrix-total">'+r.tickets+'</div></div>').join('')+'</div>':'<div class="bingo-matrix-no-data">No approved tickets available for today. Approved test entries from Google Sheets will appear here after synchronization.</div>')+
-'<div class="bingo-matrix-footer"><div>DAILY TOTAL</div>'+categoryTotals.map(n=>'<div>'+n+'</div>').join('')+'<div>'+total+'</div></div>';
+'<div class="bingo-matrix-footer" style="'+gridStyle+'"><div>DAILY TOTAL</div>'+categoryTotals.map(n=>'<div>'+n+'</div>').join('')+'<div>'+total+'</div></div>';
 
 root.querySelector('#bingo-category-grid').innerHTML=names.map((n,i)=>'<div class="bingo-category"><small>'+esc(n)+'</small><strong>'+categoryTotals[i]+'</strong><span>approved '+(categoryTotals[i]===1?'ticket':'tickets')+'</span></div>').join('');
 const allApproved=entries.filter(e=>String(e.status||'').toLowerCase()==='approved');const sync=root.querySelector('#bingo-sync-message');sync.textContent=sorted.length?'Showing '+approved.length+' approved entries for '+day+'. Refreshed '+new Date().toLocaleTimeString()+'.':allApproved.length?'Found '+allApproved.length+' approved entries in this browser, but none dated '+day+'. Check the entry dates.':'No approved entries are available to this Employee Portal. The Admin and Employee HTML files must use the same browser origin to share localStorage. For cross-device syncing, Google Sheets / Apps Script integration is required.';
@@ -421,7 +417,7 @@ window.addEventListener('storage',update);setInterval(update,3000);update();
 (function(){
 'use strict';
 const endpoint='https://script.google.com/macros/s/AKfycbwsjW0VFilbJokuaNYWF-vU7JktoEnWsL4TLJ7u4MNH3W4pNv2d3VAhaT24bE3j2gXo/exec';
-const categories=['Monster Money','Candy Crush','Ghost Payments','Witch Magic'];
+let categories=(window.SEHC_CATEGORY_NAMES||['Monster Money','Candy Crush','Ghost Payments','Witch Magic']).slice();
 const status=document.getElementById('sehc-live-status');
 const cards=document.getElementById('sehc-live-categories');
 const btn=document.getElementById('sehc-live-refresh');
@@ -439,7 +435,7 @@ function renderCards(data){
  });
 }
 window.SEHC_DEMO_BOARD_RECEIVE=function(data){
- clearTimeout(timeout);if(pending){pending.remove();pending=null;}
+ clearTimeout(timeout);if(Array.isArray(data&&data.categories)){categories=data.categories.map(x=>x.name||x);window.SEHC_CATEGORY_NAMES=categories.slice();}if(pending){pending.remove();pending=null;}
  if(!data||data.ok!==true||!Array.isArray(data.members)){status.textContent='Invalid response from Apps Script. Confirm the V33 deployment.';return;}
  window.SEHC_SHEETS_DATE=data.date;
  const mapped=[];
@@ -469,7 +465,7 @@ refresh();setInterval(()=>{if(document.visibilityState==='visible')refresh();},3
 (function(){
 'use strict';
 const API='https://script.google.com/macros/s/AKfycbwsjW0VFilbJokuaNYWF-vU7JktoEnWsL4TLJ7u4MNH3W4pNv2d3VAhaT24bE3j2gXo/exec';
-const categoryNames=['Monster Money','Candy Crush','Ghost Payments','Witch Magic'];
+let categoryNames=(window.SEHC_CATEGORY_NAMES||['Monster Money','Candy Crush','Ghost Payments','Witch Magic']).slice();window.addEventListener('sehc-bingo-config',e=>categoryNames=(e.detail||[]).filter(x=>x.active).map(x=>x.name));
 const submitBtn=document.getElementById('submitEntry');
 const submitStatus=document.getElementById('sheetSubmitStatus');
 const board=document.getElementById('board');
@@ -486,10 +482,10 @@ function post(fields){
 }
 submitBtn.onclick=function(){
  const accountReference=document.getElementById('accountReference').value.trim();
- const rawCategory=document.getElementById('category').value;
- const cat=Number(rawCategory);
- if(!Number.isInteger(cat)||cat<0||cat>=categoryNames.length)return alert('Select a Daily Bingo category.');
- const category=categoryNames[cat]; const tickets=cat===3?2:1;
+ const category=document.getElementById('category').value.trim();
+ const selected=(window.SEHC_BINGO_CONFIG||[]).find(x=>x.active&&x.name===category);
+ if(!selected)return alert('Select a Daily Bingo category.');
+ const tickets=Number(selected.tickets)||1;
  if(!window.SEHC_CURRENT_USER)return alert('Your session is still loading. Please try again.');
  if(!accountReference)return alert('Enter the account / reference number so the supervisor can verify the activity.');
  submitStatus.textContent='Sending to Google Sheets…'; submitBtn.disabled=true;
@@ -500,12 +496,13 @@ submitBtn.onclick=function(){
    const ref=document.getElementById('accountReference'); if(ref) ref.value='';
    document.querySelectorAll('input[name="bingo-category"]').forEach(r=>r.checked=false);
    document.querySelectorAll('.bingo-category-card').forEach(c=>c.classList.remove('selected'));
-   const hidden=document.getElementById('category'); if(hidden) hidden.value='-1';
+   const hidden=document.getElementById('category'); if(hidden) hidden.value='';
    if(window.SEHC_REFRESH_PENDING) setTimeout(window.SEHC_REFRESH_PENDING,250);
  },1400);
 };
 function renderSection(data){
  if(!data||!data.ok||!Array.isArray(data.members)) return;
+ if(Array.isArray(data.categories)){categoryNames=data.categories.map(x=>x.name||x);window.SEHC_CATEGORY_NAMES=categoryNames.slice();}
  const cols=categoryNames.map(c=>[]);
  data.members.forEach(m=>categoryNames.forEach((c,i)=>{const n=Number(m.categories&&m.categories[c])||0;if(n)cols[i].push({name:m.name,tickets:n})}));
  board.innerHTML=categoryNames.map((name,i)=>'<div class="boardcol"><div class="boardhead">'+esc(name)+'<small>'+cols[i].reduce((a,x)=>a+x.tickets,0)+' approved tickets</small></div>'+ (cols[i].length?cols[i].map(x=>'<div class="boardentry">'+esc(x.name)+(x.tickets>1?' ×'+x.tickets:'')+'</div>').join(''):'<div class="boardentry">No approved entries</div>') +'</div>').join('');
@@ -587,4 +584,34 @@ if(document.readyState==='loading')document.addEventListener('DOMContentLoaded',
   setInterval(()=>{if(document.visibilityState==='visible')loadPending()},30000);
 })();
 </script>
-</body></html>
+<script id="sehc-bingo-config-employee-v49">
+(function(){
+const API='https://script.google.com/macros/s/AKfycbwsjW0VFilbJokuaNYWF-vU7JktoEnWsL4TLJ7u4MNH3W4pNv2d3VAhaT24bE3j2gXo/exec';
+const grid=document.getElementById('dynamic-bingo-category-grid');
+function esc(s){return String(s??'').replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]))}
+window.SEHC_BINGO_CONFIG_RECEIVE=function(data){
+  if(!data||!data.ok){grid.innerHTML='<div class="muted">Unable to load Daily Bingo categories.</div>';return}
+  const active=(data.categories||[]).filter(x=>x.active);
+  window.SEHC_BINGO_CONFIG=data.categories||[];window.SEHC_CATEGORY_NAMES=active.map(x=>x.name);
+  grid.innerHTML=active.map(c=>'<label class="bingo-category-card"><input name="bingo-category" type="radio" value="'+esc(c.name)+'"/><span class="bingo-category-icon">'+esc(c.icon||'🎯')+'</span><span class="bingo-category-copy"><strong>'+esc(c.name)+'</strong><small>'+esc(c.description||'Qualifying activity')+(Number(c.tickets)>1?' · '+c.tickets+' drawing tickets':'')+'</small></span><span class="bingo-category-check">✓</span></label>').join('');
+  grid.querySelectorAll('input[name="bingo-category"]').forEach(r=>r.addEventListener('change',()=>{if(!r.checked)return;document.getElementById('category').value=r.value;grid.querySelectorAll('.bingo-category-card').forEach(c=>c.classList.toggle('selected',c.querySelector('input').checked));}));
+  window.dispatchEvent(new CustomEvent('sehc-bingo-config',{detail:data.categories||[]}));
+};
+function load(){const s=document.createElement('script');s.src=API+'?action=bingoConfig&format=jsonp&token='+encodeURIComponent(window.SEHC_AUTH_TOKEN||'')+'&_='+Date.now();s.onload=()=>setTimeout(()=>s.remove(),0);document.head.appendChild(s)}
+window.addEventListener('sehc-auth-ready',load);load();
+})();
+</script><script id="sehc-reward-config-employee-v50">
+(function(){
+const API='https://script.google.com/macros/s/AKfycbwsjW0VFilbJokuaNYWF-vU7JktoEnWsL4TLJ7u4MNH3W4pNv2d3VAhaT24bE3j2gXo/exec';
+window.SEHC_REWARD_CONFIG_RECEIVE=function(data){
+  if(!data||!data.ok||!Array.isArray(data.rewards))return;
+  window.SEHC_REWARD_CONFIG=data.rewards;
+  try{catalog=data.rewards.slice();if(typeof renderRewards==='function')renderRewards()}catch(e){}
+  window.dispatchEvent(new CustomEvent('sehc-reward-config',{detail:data.rewards}));
+};
+function load(){const s=document.createElement('script');s.src=API+'?action=rewardConfig&format=jsonp&token='+encodeURIComponent(window.SEHC_AUTH_TOKEN||'')+'&_='+Date.now();s.onload=()=>setTimeout(()=>s.remove(),0);document.head.appendChild(s)}
+window.addEventListener('sehc-auth-ready',load);
+document.querySelector('[data-tab="wallet"]')?.addEventListener('click',load);
+load();
+})();
+</script></body></html>
