@@ -181,6 +181,14 @@
 </style><style id="sehc-sidebar-session-v51">
 header{display:flex!important;flex-direction:column!important;min-height:100vh!important}
 header nav{flex:0 0 auto}.sehc-sidebar-session{margin-top:auto;padding:14px 8px 4px;border-top:1px solid #d6e8ee}.sehc-sidebar-user{font-size:12px;color:#376273;line-height:1.35;margin-bottom:8px;overflow-wrap:anywhere}.sehc-sidebar-session button{width:100%;border:0;border-radius:10px;padding:9px 10px;background:#0b7f9f;color:#fff;font-weight:800;cursor:pointer}
+</style>
+<style id="sehc-eligibility-v54-style">
+#employeeEligibilityChip{font-weight:800;border:1px solid #bfd7df;background:#edf7fa;color:#245f72}
+#employeeEligibilityChip.is-eligible{background:#e9f7ef;border-color:#9fd6b6;color:#17683d}
+#employeeEligibilityChip.is-ineligible{background:#fff0f0;border-color:#e8b3b3;color:#9f3030}
+#employeeEligibilityChip.is-pending{background:#f4f6f7;border-color:#d6e0e4;color:#5f7380}
+.eligibility-detail{font-size:12px;color:#5b7682;margin:-2px 0 10px 2px;min-height:16px}
+.eligibility-submit-note{font-size:12px;color:#6a7f88;margin-top:8px}
 </style></head><body>
 <style id="sehc-auth-ui">
 #sehcAuthGate{position:fixed;inset:0;z-index:99999;background:#eef8fb;display:flex;align-items:center;justify-content:center;font-family:Segoe UI,Arial;color:#00475c}
@@ -217,11 +225,16 @@ const sehcDoLogout=function(){const n='logout'+Date.now(),f=document.createEleme
 <div class="card"><h2>Grand Draw</h2><p>Each eligible raffle ticket is one chance in the draw. More tickets improve the odds but do not guarantee a win.</p></div>
 </section><section class="section" id="profile"><div class="card"><h2>My Profile</h2><p>Upload your photo and personalize your employee profile.</p><div style="display:flex;gap:22px;flex-wrap:wrap;align-items:start"><canvas height="200" id="profile-preview" style="border:5px solid #36a8b8;border-radius:24px;background:#e5f4f8;max-width:100%" width="200"></canvas><div style="flex:1;min-width:210px"><label for="profile-name">Display Name</label><input id="profile-name" maxlength="65" placeholder="Your name"/><label for="profile-upload" style="display:block;margin-top:16px">Upload Photo</label><input accept="image/png,image/jpeg,image/webp" id="profile-upload" type="file"/><p class="muted">Photo previews are stored only in this browser. Original collectible-style AI avatars are planned for a future version.</p><button id="profile-save" type="button">Save Profile</button><p id="profile-status" role="status"></p></div></div></div></section><section class="section active" id="home"><div class="grid"><div class="card metric"><b id="mwallet">0</b><small>Available wallet points</small></div><div class="card metric"><b id="mtickets">0</b><small>Approved bingo tickets today</small></div><div class="card metric"><b id="mpending">0</b><small>Pending review</small></div><div class="card span2"><h2>Make every shift count</h2><p>Submit your Bingo activities, play training mini-games, and earn points to redeem rewards. Arcade points are credited after supervisor approval.</p><div class="row"><button class="btn" onclick="tab('games')">Play Arcade →</button><button class="btn alt" onclick="tab('bingo')">Submit Bingo →</button></div></div><div class="card"><h2>Rewards spotlight</h2><p>☕ Coffee · 🍱 Team Lunch · 🕒 Shift Flex · 🌴 PTO</p><button class="btn alt" onclick="tab('wallet')">Browse Rewards</button></div></div></section>
 <section class="section" id="bingo">
-<div class="row"><h2>Daily Bingo · <span id="today"></span></h2><span class="pill">$15 Daily Giveaway</span></div>
+<div class="row" style="align-items:center;gap:10px;flex-wrap:wrap">
+<h2 style="margin-right:auto">Daily Bingo · <span id="today"></span></h2>
+<span class="pill" id="employeeEligibilityChip">Eligibility: Checking…</span>
+<span class="pill">$15 Daily Giveaway</span>
+</div>
+<div id="employeeEligibilityDetail" class="eligibility-detail" role="status"></div>
 <div class="card" style="margin-bottom:15px">
 <h2>Submit an activity</h2>
 <p class="muted">Your employee identity is supplied automatically from your signed-in account.</p>
-<div class="note" id="signedInBingoIdentity"><strong>Signed-in employee</strong><br><span>Loading account…</span></div><div class="note" id="employeeEligibilityBanner" style="margin-top:10px"><strong>Monthly Eligibility</strong><br><span>Checking eligibility…</span></div><div class="formgrid" style="margin:14px 0">
+<div class="note" id="signedInBingoIdentity"><strong>Signed-in employee</strong><br><span>Loading account…</span></div><div class="formgrid" style="margin:14px 0">
 <label class="field">Account / Reference Number
 <input id="accountReference" maxlength="80" autocomplete="off" placeholder="Enter account or reference number" required>
 </label>
@@ -238,7 +251,7 @@ const sehcDoLogout=function(){const n='logout'+Date.now(),f=document.createEleme
 </div>
 <p class="muted">Do not enter patient information, account details, or payment information.</p>
 <div class="row" style="justify-content:flex-start">
-<button class="btn" id="submitEntry" type="button">Submit for supervisor review</button>
+<button class="btn" id="submitEntry" type="button">Submit for supervisor review</button><div id="eligibilitySubmitNote" class="eligibility-submit-note"></div>
 <span class="status" id="sheetSubmitStatus" role="status"></span>
 </div>
 </div>
@@ -633,23 +646,22 @@ document.querySelector('[data-tab="wallet"]')?.addEventListener('click',load);
 load();
 })();
 </script>
-<script id="sehc-employee-eligibility-v53">
+<script id="sehc-employee-eligibility-v54">
 (function(){
 const API='https://script.google.com/macros/s/AKfycbwsjW0VFilbJokuaNYWF-vU7JktoEnWsL4TLJ7u4MNH3W4pNv2d3VAhaT24bE3j2gXo/exec';
-const box=document.getElementById('employeeEligibilityBanner'),btn=document.getElementById('submitEntry');
+const chip=document.getElementById('employeeEligibilityChip'),detail=document.getElementById('employeeEligibilityDetail'),note=document.getElementById('eligibilitySubmitNote'),btn=document.getElementById('submitEntry');
+function monthLabel(key){if(!/^\d{4}-\d{2}$/.test(key||''))return '';const [y,m]=key.split('-').map(Number);return new Intl.DateTimeFormat('en-US',{month:'long',year:'numeric'}).format(new Date(y,m-1,1))}
+function previousMonthLabel(key){if(!/^\d{4}-\d{2}$/.test(key||''))return 'previous month';const [y,m]=key.split('-').map(Number);return new Intl.DateTimeFormat('en-US',{month:'long',year:'numeric'}).format(new Date(y,m-2,1))}
 window.SEHC_ELIGIBILITY_STATUS_RECEIVE=function(data){
-  if(!data||!data.ok){box.innerHTML='<strong>Monthly Eligibility</strong><br><span>Unable to verify eligibility.</span>';if(btn)btn.disabled=true;window.SEHC_EMPLOYEE_ELIGIBLE=false;return}
-  const e=data.eligibility||{},cfg=e.config||{};
-  window.SEHC_EMPLOYEE_ELIGIBLE=!!e.eligible;
-  const connect=e.connectTimePct==null?'Pending':e.connectTimePct+'%';
-  const compliance=e.compliancePct==null?'Pending':e.compliancePct+'%';
-  box.style.borderColor=e.status==='Eligible'?'#79c89d':e.status==='Not Eligible'?'#e6a1a1':'#e1c979';
-  box.style.background=e.status==='Eligible'?'#edf9f2':e.status==='Not Eligible'?'#fff1f1':'#fff9e7';
-  box.innerHTML='<strong>Monthly Eligibility · '+e.status+'</strong><br><span>Previous Month Connect Time: '+connect+' (Min. '+cfg.connectMin+'%) · Compliance: '+compliance+' (Min. '+cfg.complianceMin+'%)</span>';
-  if(btn){btn.disabled=!e.eligible;btn.title=e.eligible?'':'Daily Bingo participation requires monthly eligibility.'}
+  chip.classList.remove('is-eligible','is-ineligible','is-pending');
+  if(!data||!data.ok){window.SEHC_EMPLOYEE_ELIGIBLE=false;chip.textContent='Eligibility: Unavailable';chip.classList.add('is-pending');detail.textContent='Eligibility could not be verified. Please contact your supervisor.';note.textContent='Submission is unavailable until eligibility is verified.';if(btn)btn.disabled=true;return}
+  const e=data.eligibility||{},participation=e.month||'';window.SEHC_EMPLOYEE_ELIGIBLE=!!e.eligible;
+  if(e.status==='Eligible'){chip.textContent='Eligibility: Eligible';chip.classList.add('is-eligible');detail.textContent=monthLabel(participation)+' eligibility confirmed from '+previousMonthLabel(participation)+' metrics.';note.textContent='';if(btn)btn.disabled=false}
+  else if(e.status==='Not Eligible'){chip.textContent='Eligibility: Not Eligible';chip.classList.add('is-ineligible');detail.textContent='Connect Time '+(e.connectTimePct==null?'—':e.connectTimePct+'%')+' · Compliance '+(e.compliancePct==null?'—':e.compliancePct+'%')+'.';note.textContent='Daily Bingo participation is unavailable for this month. Contact your supervisor with questions.';if(btn)btn.disabled=true}
+  else{chip.textContent='Eligibility: Pending';chip.classList.add('is-pending');detail.textContent='Monthly eligibility has not been verified yet.';note.textContent='Your supervisor must verify the prior-month metrics before you can submit Daily Bingo.';if(btn)btn.disabled=true}
 };
-function load(){const s=document.createElement('script');s.src=API+'?action=eligibilityStatus&format=jsonp&token='+encodeURIComponent(window.SEHC_AUTH_TOKEN||'')+'&_='+Date.now();s.onload=()=>setTimeout(()=>s.remove(),0);document.head.appendChild(s)}
-window.addEventListener('sehc-auth-ready',()=>setTimeout(load,80));document.querySelector('[data-tab="bingo"]')?.addEventListener('click',load);load();
+function load(){const old=document.getElementById('sehc-elig-employee-load');if(old)old.remove();const s=document.createElement('script');s.id='sehc-elig-employee-load';s.src=API+'?action=eligibilityStatus&format=jsonp&token='+encodeURIComponent(window.SEHC_AUTH_TOKEN||'')+'&_='+Date.now();s.onerror=()=>{chip.textContent='Eligibility: Unavailable';chip.classList.add('is-pending');detail.textContent='Unable to reach eligibility service.';if(btn)btn.disabled=true;s.remove()};s.onload=()=>setTimeout(()=>s.remove(),0);document.head.appendChild(s)}
+window.SEHC_REFRESH_ELIGIBILITY=load;window.addEventListener('sehc-auth-ready',()=>setTimeout(load,80));document.querySelector('[data-tab="bingo"]')?.addEventListener('click',load);load();
 })();
 </script>
 </body></html>
