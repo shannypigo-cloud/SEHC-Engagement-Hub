@@ -218,7 +218,7 @@ document.getElementById('sehcLogout').onclick=function(){const n='logout'+Date.n
 <label class="bingo-category-card"><input name="bingo-category" type="radio" value="2"/><span class="bingo-category-icon">👻</span><span class="bingo-category-copy"><strong>Ghost Payments</strong><small>5 payments</small></span><span class="bingo-category-check">✓</span></label>
 <label class="bingo-category-card"><input name="bingo-category" type="radio" value="3"/><span class="bingo-category-icon">🪄</span><span class="bingo-category-copy"><strong>Witch Magic</strong><small>Every $500 · 2 drawing tickets</small></span><span class="bingo-category-check">✓</span></label>
 </div>
-<input id="category" type="hidden" value="1"/>
+<input id="category" type="hidden" value="-1"/>
 </div>
 <div class="field" style="align-content:end">
 <div class="note"><strong>Connected workflow</strong><br/>Submission → Google Sheets → Supervisor Approval → Daily Board</div>
@@ -229,6 +229,11 @@ document.getElementById('sehcLogout').onclick=function(){const n='logout'+Date.n
 <button class="btn" id="submitEntry" type="button">Submit for supervisor review</button>
 <span class="status" id="sheetSubmitStatus" role="status"></span>
 </div>
+</div>
+<div class="card" id="pendingSubmissionsCard">
+<div class="row"><div><h2>Pending Approvals</h2><p class="muted">Your submitted Bingo activities waiting for supervisor review.</p></div><button class="btn alt" id="refreshPendingBtn" type="button">Refresh Pending</button></div>
+<div class="note" id="pendingSubmissionStatus">Loading pending submissions…</div>
+<div id="pendingSubmissionList" style="margin-top:10px"></div>
 </div>
 <div class="card">
 <div class="row"><h2>Approved Bingo Board</h2><button class="btn alt" id="bingoSectionRefresh" type="button">Refresh from Sheets</button></div>
@@ -481,13 +486,23 @@ function post(fields){
 }
 submitBtn.onclick=function(){
  const accountReference=document.getElementById('accountReference').value.trim();
- const cat=Number(document.getElementById('category').value);
+ const rawCategory=document.getElementById('category').value;
+ const cat=Number(rawCategory);
+ if(!Number.isInteger(cat)||cat<0||cat>=categoryNames.length)return alert('Select a Daily Bingo category.');
  const category=categoryNames[cat]; const tickets=cat===3?2:1;
  if(!window.SEHC_CURRENT_USER)return alert('Your session is still loading. Please try again.');
  if(!accountReference)return alert('Enter the account / reference number so the supervisor can verify the activity.');
  submitStatus.textContent='Sending to Google Sheets…'; submitBtn.disabled=true;
  post({action:'demoSubmit',token:window.SEHC_AUTH_TOKEN,accountReference,category,tickets});
- setTimeout(()=>{submitStatus.textContent='Submitted to Google Sheets · waiting for supervisor approval.';submitBtn.disabled=false;},1400);
+ setTimeout(()=>{
+   submitStatus.textContent='Submitted successfully · waiting for supervisor approval.';
+   submitBtn.disabled=false;
+   const ref=document.getElementById('accountReference'); if(ref) ref.value='';
+   document.querySelectorAll('input[name="bingo-category"]').forEach(r=>r.checked=false);
+   document.querySelectorAll('.bingo-category-card').forEach(c=>c.classList.remove('selected'));
+   const hidden=document.getElementById('category'); if(hidden) hidden.value='-1';
+   if(window.SEHC_REFRESH_PENDING) setTimeout(window.SEHC_REFRESH_PENDING,250);
+ },1400);
 };
 function renderSection(data){
  if(!data||!data.ok||!Array.isArray(data.members)) return;
@@ -529,4 +544,47 @@ function refresh(){const old=document.getElementById('sehc-employee-draw-jsonp-v
 function setup(){document.getElementById('liveEmployeeBanner')?.setAttribute('style','display:none!important');const section=document.getElementById('wheel');if(section&&!document.getElementById('sharedEmployeeDraw')){const b=document.createElement('div');b.id='sharedEmployeeDraw';b.textContent='Connecting to the shared Grand Draw…';const card=section.querySelector('.card');card?.insertBefore(b,card.firstChild)}refresh();setInterval(refresh,POLL)}
 if(document.readyState==='loading')document.addEventListener('DOMContentLoaded',setup);else setup();
 })();
-</script><script id="sehc-employee-auth-bind">window.addEventListener('sehc-auth-ready',e=>{const u=e.detail||{};const who=document.getElementById('who');if(who)who.textContent=u.fullName+' · '+u.role;const box=document.querySelector('#signedInBingoIdentity span');if(box)box.textContent=u.fullName+' · '+u.employeeID;});</script></body></html>
+</script><script id="sehc-employee-auth-bind">window.addEventListener('sehc-auth-ready',e=>{const u=e.detail||{};const who=document.getElementById('who');if(who)who.textContent=u.fullName+' · '+u.role;const box=document.querySelector('#signedInBingoIdentity span');if(box)box.textContent=u.fullName+' · '+u.employeeID;});</script>
+<script id="sehc-pending-submissions-v46">
+(function(){
+  const API='https://script.google.com/macros/s/AKfycbwsjW0VFilbJokuaNYWF-vU7JktoEnWsL4TLJ7u4MNH3W4pNv2d3VAhaT24bE3j2gXo/exec';
+  const list=document.getElementById('pendingSubmissionList');
+  const status=document.getElementById('pendingSubmissionStatus');
+  const refresh=document.getElementById('refreshPendingBtn');
+  function esc(v){return String(v??'').replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]))}
+  window.SEHC_PENDING_RECEIVE=function(data){
+    if(!data||!data.ok){
+      status.textContent=data&&data.error?data.error:'Unable to load pending submissions.';
+      list.innerHTML='';
+      return;
+    }
+    const rows=(data.entries||[]);
+    status.textContent=rows.length ? rows.length+' pending approval'+(rows.length===1?'':'s') : 'No pending approvals.';
+    list.innerHTML='';
+    rows.forEach(x=>{
+      const item=document.createElement('div');
+      item.style.cssText='border:1px solid #d7e7ec;border-radius:12px;padding:12px 14px;margin-top:8px;background:#fff';
+      item.innerHTML='<b>'+esc(x.category||'Bingo Entry')+'</b>'+
+        '<div class="muted">Account / Reference: '+esc(x.accountReference||'—')+'</div>'+
+        '<div class="muted">'+esc(x.tickets||0)+' ticket'+(Number(x.tickets)===1?'':'s')+' · Pending supervisor approval</div>';
+      list.appendChild(item);
+    });
+  };
+  function loadPending(){
+    if(!window.SEHC_AUTH_TOKEN||!window.SEHC_CURRENT_USER){
+      status.textContent='Waiting for your signed-in session…';
+      return;
+    }
+    const s=document.createElement('script');
+    s.src=API+'?action=employeePending&format=jsonp&token='+encodeURIComponent(window.SEHC_AUTH_TOKEN)+'&_='+Date.now();
+    s.addEventListener('load',()=>setTimeout(()=>s.remove(),0),{once:true});
+    s.addEventListener('error',()=>{status.textContent='Unable to refresh pending approvals.';setTimeout(()=>s.remove(),0)},{once:true});
+    document.head.appendChild(s);
+  }
+  window.SEHC_REFRESH_PENDING=loadPending;
+  refresh?.addEventListener('click',loadPending);
+  window.addEventListener('sehc-auth-ready',()=>setTimeout(loadPending,250));
+  setInterval(()=>{if(document.visibilityState==='visible')loadPending()},30000);
+})();
+</script>
+</body></html>
