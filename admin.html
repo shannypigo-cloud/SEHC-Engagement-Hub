@@ -290,7 +290,21 @@ header nav{flex:0 0 auto}.sehc-sidebar-session{margin-top:auto;padding:14px 8px 
 .contest-progress-row{display:grid;grid-template-columns:1.2fr 1.2fr .8fr .8fr 1fr;gap:10px;padding:10px 0;border-top:1px solid #dce8ec}
 @media(max-width:900px){.contest-builder-grid{grid-template-columns:1fr 1fr}.contest-review-row,.contest-progress-row{grid-template-columns:1fr 1fr}}
 @media(max-width:600px){.contest-builder-grid,.contest-review-row,.contest-progress-row{grid-template-columns:1fr}}
-</style></head><body>
+</style>
+<style id="sehc-action-center-v66-style">
+.sehc-action-center{border:1px solid #b9dce5;background:linear-gradient(180deg,#fbfeff,#f3fafc)}
+.sehc-action-total{display:inline-flex;align-items:center;justify-content:center;padding:7px 11px;border-radius:999px;background:#e6f4f8;color:#075d76;font-size:12px;font-weight:900}
+.sehc-action-item{display:flex;align-items:center;justify-content:space-between;gap:14px;padding:12px 0;border-top:1px solid #d9e8ed}.sehc-action-item:first-child{border-top:0}
+.sehc-action-item strong{display:block}.sehc-action-item .muted{font-size:12px}.sehc-action-item button{white-space:nowrap}
+.sehc-action-empty{padding:14px;border:1px solid #bfe3ce;background:#eefaf3;color:#17653d;border-radius:12px;font-weight:800}
+.sehc-nav-badge{display:inline-flex;align-items:center;justify-content:center;min-width:20px;height:20px;margin-left:7px;padding:0 6px;border-radius:999px;background:#d93025;color:#fff;font-size:10px;font-weight:900;vertical-align:middle}
+.sehc-toast-stack{position:fixed;right:18px;top:18px;z-index:120000;display:grid;gap:10px;width:min(390px,calc(100vw - 36px));pointer-events:none}
+.sehc-toast{pointer-events:auto;background:#fff;border:1px solid #b9dce5;border-left:5px solid #0c88a7;border-radius:14px;padding:14px 15px;box-shadow:0 16px 42px #00394d33;animation:sehcToastIn .22s ease-out}.sehc-toast.attention{border-left-color:#d88b00}.sehc-toast strong{display:block;margin-bottom:3px}.sehc-toast button{margin-top:8px}
+@keyframes sehcToastIn{from{opacity:0;transform:translateY(-8px)}to{opacity:1;transform:none}}
+.sehc-engagement-snapshot{border:1px solid #bfdce4;background:#fbfdfe}.sehc-snapshot-grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(145px,1fr));gap:10px;margin-top:14px}.sehc-snapshot-grid>div{border:1px solid #d5e6eb;border-radius:12px;padding:13px;background:#fff}.sehc-snapshot-grid b{display:block;font-size:26px;color:#04546c}.sehc-snapshot-grid small{color:#617d88}.sehc-snapshot-chips{display:flex;gap:7px;flex-wrap:wrap;margin-top:12px}.sehc-snapshot-chip{display:inline-flex;padding:6px 9px;border-radius:999px;background:#eaf5f8;color:#155b70;font-size:11px;font-weight:800}
+@media(max-width:650px){.sehc-action-item{align-items:flex-start;flex-direction:column}.sehc-action-item button{width:100%}}
+</style>
+</head><body>
 <style id="sehc-auth-ui">
 #sehcAuthGate{position:fixed;inset:0;z-index:99999;background:#eef8fb;display:flex;align-items:center;justify-content:center;font-family:Segoe UI,Arial;color:#00475c}
 #sehcAuthGate .box{background:white;border:1px solid #d9e9ee;border-radius:16px;padding:24px 30px;box-shadow:0 12px 40px #00475c22;text-align:center}
@@ -314,10 +328,14 @@ const sehcDoLogout=function(){const n='logout'+Date.now(),f=document.createEleme
   <button id="sehcSidebarSignOut" type="button">Sign Out</button>
 </div></header><main><div class="notice"><b>CONNECTED:</b> Authentication, Daily Bingo approvals, leaderboard data, and Grand Draw use the shared Google Sheets / Apps Script backend.</div>
 <section id="overview"><h1>Operations Overview</h1><div class="grid">
-<div class="stat overview-link" role="button" tabindex="0" data-section="approvals" data-focus="bingo-approval-panel"><strong id="pending">0</strong><small>Pending approvals</small><span class="overview-hint">Open approvals →</span></div>
+<div class="stat overview-link" role="button" tabindex="0" data-section="approvals" data-focus="bingo-approval-panel"><strong id="pending">0</strong><small>Pending Bingo approvals</small><span class="overview-hint">Open approvals →</span></div>
+<div class="stat overview-link" role="button" tabindex="0" data-section="contests" data-focus="contest-pending-panel"><strong id="adminContestPending">0</strong><small>Pending contest reviews</small><span class="overview-hint">Review entries →</span></div>
+<div class="stat overview-link" role="button" tabindex="0" data-section="contests" data-focus="contest-operations-panel"><strong id="adminActiveContests">0</strong><small>Active Ad Hoc contests</small><span class="overview-hint">Manage contests →</span></div>
 <div class="stat overview-link" role="button" tabindex="0" data-section="approvals" data-focus="redemption-panel"><strong id="redeems">0</strong><small>Pending redemptions</small><span class="overview-hint">Open redemptions →</span></div>
-<div class="stat overview-link" role="button" tabindex="0" data-section="approvals" data-focus="approved-today-panel"><strong id="approved">0</strong><small>Approved bingo tickets today</small><span class="overview-hint">View approved →</span></div>
-</div><div class="panel"><h2>Quick access</h2><p>Click any summary card above to jump directly to the related work queue.</p></div></section>
+<div class="stat overview-link" role="button" tabindex="0" data-section="approvals" data-focus="approved-today-panel"><strong id="approved">0</strong><small>Approved Bingo tickets today</small><span class="overview-hint">View approved →</span></div>
+</div>
+<div class="panel sehc-action-center" id="adminActionCenter"><div class="row"><div><h2>Action Center</h2><p class="muted">Items that currently need supervisor or administrator attention.</p></div><span class="sehc-action-total" id="adminActionTotal">0 actions</span></div><div id="adminActionList"></div></div>
+<div class="panel"><h2>Quick access</h2><p>Click any summary card or Action Center item to jump directly to the related work queue.</p></div></section>
 <section class="hidden" id="approvals"><h1>Supervisor Approvals</h1>
 <div class="panel" id="bingo-approval-panel"><div style="display:flex;justify-content:space-between;align-items:center;gap:12px;flex-wrap:wrap"><div><h2 style="margin-bottom:4px">Daily Bingo Approvals</h2><p style="margin-top:0">Submissions below come directly from Google Sheets.</p></div><button id="integrated-refresh" type="button">Refresh from Sheets</button></div><div id="integrated-status" style="margin:10px 0;padding:10px 12px;border-radius:10px;background:#e9f6f8;color:#0b5168;font-weight:700">Connecting to Google Sheets…</div><div id="integrated-pending"></div></div>
 <div class="panel" id="approved-today-panel"><h2>Approved Today</h2><p class="muted">Today’s approvals, including who approved each entry.</p><div id="integrated-approved"></div></div>
@@ -381,13 +399,13 @@ const sehcDoLogout=function(){const n='logout'+Date.now(),f=document.createEleme
   </div>
 </div>
 
-<div class="panel">
+<div class="panel" id="contest-operations-panel">
   <h2>Contest Operations Dashboard</h2>
   <div class="grid" id="contestSummaryCards"></div>
   <div id="contestsList" style="margin-top:14px"></div>
 </div>
 
-<div class="panel">
+<div class="panel" id="contest-pending-panel">
   <h2>Employee Submissions & Claims</h2>
   <p>Entries from Employee Submission and Employee Claim + Supervisor Verification contests appear here.</p>
   <button id="refreshContestReviews" class="alt" type="button">Refresh Reviews</button>
@@ -459,6 +477,18 @@ const sehcDoLogout=function(){const n='logout'+Date.now(),f=document.createEleme
       </div>
       <button id="adminLeaderboardRefresh" type="button">Refresh Leaderboard</button>
     </div>
+  </div>
+  <div class="panel sehc-engagement-snapshot" id="adminLeaderboardSnapshot">
+    <div class="row"><div><h2>Engagement Snapshot</h2><p class="muted">A single operational view of Daily Bingo and Ad Hoc Contest activity.</p></div></div>
+    <div class="sehc-snapshot-grid">
+      <div><b id="adminLbActiveContests">0</b><small>Active Ad Hoc Contests</small></div>
+      <div><b id="adminLbContestPending">0</b><small>Contest Reviews Pending</small></div>
+      <div><b id="adminLbBingoPending">0</b><small>Bingo Reviews Pending</small></div>
+      <div><b id="adminLbBingoApproved">0</b><small>Approved Bingo Tickets Today</small></div>
+      <div><b id="adminLbTrackedProgress">0</b><small>Tracked Contest Progress Records</small></div>
+    </div>
+    <div id="adminLbContestNames" class="sehc-snapshot-chips"></div>
+    <p class="muted" style="margin-bottom:0">Wallet Points rankings remain in the team leaderboard below. Daily Bingo raffle chances remain in the Bingo leaderboard.</p>
   </div>
 
   <div class="lb-wrap" id="lb-admin"><div style="font-size:11px;letter-spacing:2px;color:#89e1ed">SOUTHEASTERN HEALTHCARE SOLUTIONS</div><h2 data-title="">Team Leaderboard</h2><p>Earn points. Celebrate achievements. Climb the rankings.</p><label>Ranking Period <select data-period=""><option value="all">All-Time Earned Points</option><option value="month">This Month</option></select></label><div class="lb-podium" data-podium=""></div><h3>Full Team Rankings</h3><div data-rows=""></div><p style="font-size:12px">Rankings reflect approved points earned, not current Wallet balances. Redemptions do not reduce earned rankings.</p></div>
@@ -1326,6 +1356,8 @@ function render(){
   $('awardEmployee').innerHTML='<option value="">Select employee</option>'+employeeOptions;
   $('awardContest').innerHTML='<option value="">Manual / No Contest</option>'+active.map(c=>'<option value="'+esc(c.id)+'">'+esc(c.name)+'</option>').join('');
   $('contestProgressList').innerHTML=progress.length?progress.map(p=>'<div class="contest-progress-row"><div><b>'+esc(p.employeeName)+'</b></div><div>'+esc(p.contestName)+'</div><div>'+esc(p.metricValue)+' / '+esc(p.goalValue||'—')+' '+esc(p.unit||'')+'</div><div>'+esc(p.status)+'</div><div class="muted">'+esc(p.updatedBy||'')+'</div></div>').join(''):'<p>No supervisor-tracked progress has been entered yet.</p>';
+  window.SEHC_ADMIN_CONTEST_STATE={contests:contests.slice(),pendingEntries:pending.slice(),progress:progress.slice(),activeCount:active.length,pendingCount:pending.length};
+  window.dispatchEvent(new CustomEvent('sehc-admin-contest-update',{detail:window.SEHC_ADMIN_CONTEST_STATE}));
 }
 async function load(){
   if(busy)return;busy=true;
@@ -1425,6 +1457,7 @@ async function manualAward(){
     $('awardContestStatus').textContent='Award recorded successfully.';await load();
   }catch(err){$('awardContestStatus').textContent='Award was NOT recorded: '+(err.message||String(err))}
 }
+window.SEHC_ADMIN_CONTEST_REFRESH=load;
 function init(){
   if(started)return;started=true;
   $('contestMethod').addEventListener('change',renderBuilder);renderBuilder();
@@ -1436,6 +1469,37 @@ function init(){
   if(!$('contestStart').value)$('contestStart').value=new Date().toLocaleDateString('en-CA');
   load();
 }
+if(window.SEHC_CURRENT_USER)init();else window.addEventListener('sehc-auth-ready',init,{once:true});
+})();
+</script>
+
+<script id="sehc-admin-action-center-v66">
+(function(){
+const $=id=>document.getElementById(id);
+const state={contest:{contests:[],pendingEntries:[],progress:[],activeCount:0,pendingCount:0},bingoPending:0,bingoApproved:0,redeems:0};
+let started=false,lastCounts={bingo:null,contest:null};
+function userKey(){const u=window.SEHC_CURRENT_USER||{};return String(u.userID||u.employeeID||u.fullName||'admin').replace(/[^a-z0-9_-]/gi,'_')}
+function seenKey(type){return 'sehc-v66-seen-'+type+'-'+userKey()}
+function getSeen(type){try{return new Set(JSON.parse(localStorage.getItem(seenKey(type))||'[]'))}catch(e){return new Set()}}
+function setSeen(type,ids){try{localStorage.setItem(seenKey(type),JSON.stringify([...ids].slice(-300)))}catch(e){}}
+function toast(title,message,action){let stack=$('sehcAdminToastStack');if(!stack){stack=document.createElement('div');stack.id='sehcAdminToastStack';stack.className='sehc-toast-stack';document.body.appendChild(stack)}const t=document.createElement('div');t.className='sehc-toast attention';t.innerHTML='<strong>'+title+'</strong><div>'+message+'</div>';if(action){const b=document.createElement('button');b.type='button';b.textContent=action.label||'Open';b.onclick=()=>{navigate(action.section,action.focus);t.remove()};t.appendChild(b)}stack.appendChild(t);setTimeout(()=>t.remove(),12000)}
+function navigate(section,focus){if(typeof window.go==='function')window.go(section);else document.querySelector('button[onclick="go(\''+section+'\')"]')?.click();setTimeout(()=>{if(!focus)return;const el=$(focus);if(el){el.scrollIntoView({behavior:'smooth',block:'start'});el.animate?.([{boxShadow:'0 0 0 4px #ffc84a88'},{boxShadow:'none'}],{duration:1200})}},120)}
+function setBadge(section,count){const btn=[...document.querySelectorAll('header nav button')].find(b=>(b.getAttribute('onclick')||'').includes("go('"+section+"')"));if(!btn)return;let badge=btn.querySelector('.sehc-nav-badge');if(count>0){if(!badge){badge=document.createElement('span');badge.className='sehc-nav-badge';btn.appendChild(badge)}badge.textContent=String(count)}else badge?.remove()}
+function refreshDomCounts(){state.bingoPending=Number($('pending')?.textContent)||0;state.bingoApproved=Number($('approved')?.textContent)||0;state.redeems=Number($('redeems')?.textContent)||0;render()}
+function render(){
+ const c=state.contest||{},active=c.activeCount||0,cp=c.pendingCount||0,totalActions=state.bingoPending+cp+state.redeems;
+ if($('adminActiveContests'))$('adminActiveContests').textContent=String(active);if($('adminContestPending'))$('adminContestPending').textContent=String(cp);
+ if($('adminLbActiveContests'))$('adminLbActiveContests').textContent=String(active);if($('adminLbContestPending'))$('adminLbContestPending').textContent=String(cp);if($('adminLbBingoPending'))$('adminLbBingoPending').textContent=String(state.bingoPending);if($('adminLbBingoApproved'))$('adminLbBingoApproved').textContent=String(state.bingoApproved);if($('adminLbTrackedProgress'))$('adminLbTrackedProgress').textContent=String((c.progress||[]).length);
+ const chips=$('adminLbContestNames');if(chips)chips.innerHTML=(c.contests||[]).filter(x=>x.status==='active').slice(0,8).map(x=>'<span class="sehc-snapshot-chip">'+String(x.name||'Contest').replace(/[<>]/g,'')+'</span>').join('')||(active?'<span class="muted">Active contests loaded.</span>':'<span class="muted">No active Ad Hoc contests.</span>');
+ if($('adminActionTotal'))$('adminActionTotal').textContent=totalActions+' action'+(totalActions===1?'':'s');
+ const list=$('adminActionList');if(list){const items=[];if(state.bingoPending)items.push({title:state.bingoPending+' Bingo submission'+(state.bingoPending===1?'':'s')+' waiting for review',desc:'Daily Bingo approvals need supervisor action.',label:'Review Bingo',section:'approvals',focus:'bingo-approval-panel'});if(cp)items.push({title:cp+' contest submission'+(cp===1?'':'s')+' waiting for review',desc:'Employee Submission / Claim entries need a decision.',label:'Review Contests',section:'contests',focus:'contest-pending-panel'});if(state.redeems)items.push({title:state.redeems+' reward redemption'+(state.redeems===1?'':'s')+' waiting',desc:'Review requested reward fulfillment.',label:'Review Rewards',section:'approvals',focus:'redemption-panel'});list.replaceChildren();if(!items.length){const e=document.createElement('div');e.className='sehc-action-empty';e.textContent='✓ All caught up. No supervisor actions are waiting right now.';list.appendChild(e)}else items.forEach(x=>{const r=document.createElement('div');r.className='sehc-action-item';const info=document.createElement('div');info.innerHTML='<strong>'+x.title+'</strong><div class="muted">'+x.desc+'</div>';const b=document.createElement('button');b.type='button';b.textContent=x.label;b.onclick=()=>navigate(x.section,x.focus);r.append(info,b);list.appendChild(r)})}
+ setBadge('approvals',state.bingoPending+state.redeems);setBadge('contests',cp);
+}
+function inspectBingoNew(){const rows=(window.SEHC_ADMIN_ENTRIES||[]).filter(x=>x.status==='pending');const ids=rows.map(x=>String(x.id||x.entryID||'')).filter(Boolean);const seen=getSeen('admin-bingo');const fresh=ids.filter(id=>!seen.has(id));if(fresh.length){toast('New Bingo review','There '+(fresh.length===1?'is 1 new Bingo submission':'are '+fresh.length+' new Bingo submissions')+' waiting for review.',{label:'Open Approvals',section:'approvals',focus:'bingo-approval-panel'});fresh.forEach(id=>seen.add(id));setSeen('admin-bingo',seen)}}
+function inspectContestNew(detail){const ids=(detail.pendingEntries||[]).map(x=>String(x.entryID||x.id||'')).filter(Boolean);const seen=getSeen('admin-contest');const fresh=ids.filter(id=>!seen.has(id));if(fresh.length){toast('New contest review','There '+(fresh.length===1?'is 1 new employee contest entry':'are '+fresh.length+' new employee contest entries')+' waiting for review.',{label:'Review Contests',section:'contests',focus:'contest-pending-panel'});fresh.forEach(id=>seen.add(id));setSeen('admin-contest',seen)}}
+window.addEventListener('sehc-admin-contest-update',e=>{state.contest=e.detail||state.contest;render();inspectContestNew(state.contest)});
+function observeCount(id){const el=$(id);if(!el)return;new MutationObserver(()=>{refreshDomCounts();if(id==='pending')inspectBingoNew()}).observe(el,{childList:true,subtree:true,characterData:true})}
+function init(){if(started)return;started=true;['pending','approved','redeems'].forEach(observeCount);if(window.SEHC_ADMIN_CONTEST_STATE)state.contest=window.SEHC_ADMIN_CONTEST_STATE;refreshDomCounts();inspectBingoNew();if(state.contest)inspectContestNew(state.contest);setInterval(()=>{if(document.visibilityState!=='visible')return;try{window.SEHC_ADMIN_CONTEST_REFRESH?.()}catch(e){}},60000)}
 if(window.SEHC_CURRENT_USER)init();else window.addEventListener('sehc-auth-ready',init,{once:true});
 })();
 </script>
