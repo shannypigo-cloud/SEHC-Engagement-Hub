@@ -372,6 +372,16 @@ const sehcDoLogout=function(){const n='logout'+Date.now(),f=document.createEleme
 </div>
 
 <div class="panel">
+  <h2>Contest Lifecycle</h2>
+  <div class="grid">
+    <div><b>Pause</b><p class="muted">Temporarily hides the contest from employees and blocks new participation. Resume it later.</p></div>
+    <div><b>Cancel</b><p class="muted">Stops the contest. Existing history remains for audit purposes.</p></div>
+    <div><b>Archive</b><p class="muted">Removes the contest from active operations while preserving the record.</p></div>
+    <div><b>Delete</b><p class="muted">Administrator-only. Allowed only when the contest has no entries, progress, or awards.</p></div>
+  </div>
+</div>
+
+<div class="panel">
   <h2>Contest Operations Dashboard</h2>
   <div class="grid" id="contestSummaryCards"></div>
   <div id="contestsList" style="margin-top:14px"></div>
@@ -1270,7 +1280,7 @@ else window.addEventListener('sehc-auth-ready',init,{once:true});
 
 <script id="sehc-contests-admin-v61">
 (function(){
-const $=id=>document.getElementById(id);let snapshot={contests:[],pendingEntries:[],recentEntries:[],progress:[]},users=[],busy=false,started=false;
+const $=id=>document.getElementById(id);let snapshot={contests:[],pendingEntries:[],recentEntries:[],progress:[]},users=[],viewer=null,busy=false,started=false;
 function esc(s){return String(s??'').replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]))}
 function methodLabel(m){return m==='employee_submission'?'Employee Submission':m==='supervisor_tracked'?'Supervisor Tracked':m==='hybrid'?'Employee Claim + Supervisor Verification':'Setup Required'}
 function rewardText(c){const a=[];if(Number(c.walletPoints)>0)a.push(Number(c.walletPoints).toLocaleString()+' Wallet Points');if(Number(c.raffleTickets)>0)a.push(Number(c.raffleTickets)+' Raffle Ticket'+(Number(c.raffleTickets)===1?'':'s'));if(c.directReward)a.push(c.directReward);return a.join(' + ')||'No reward'}
@@ -1281,16 +1291,28 @@ function renderBuilder(){
   $('goalValueWrap').style.display=m==='employee_submission'?'none':'block';
   $('unitWrap').style.display=m==='employee_submission'?'none':'block';
   $('contestMethodHelp').innerHTML=m==='employee_submission'
-    ?'<b>Employee Submission:</b> employee enters the required information and the item goes to Supervisor Review.'
+    ?'<b>Employee Submission:</b> the employee submits the actual qualifying item (for example an Account / Reference Number or payment value). The supervisor reviews and approves or rejects that submission.'
     :m==='supervisor_tracked'
-      ?'<b>Supervisor Tracked:</b> employee does not submit anything. Operations updates progress from internal reports.'
-      :'<b>Employee Claim + Supervisor Verification:</b> employee submits a claim/reference and Operations verifies the final result before approval.';
+      ?'<b>Supervisor Tracked:</b> the employee does not submit a form. Operations uses internal reports to update progress such as 7 / 10 payments, dollars collected, or accounts completed.'
+      :'<b>Employee Claim + Supervisor Verification:</b> the employee says they believe they qualified and submits a claim/reference. Operations validates the actual result in internal reporting and can enter a verified value before approving.';
 }
 function render(){
   const contests=snapshot.contests||[],pending=snapshot.pendingEntries||[],progress=snapshot.progress||[];
   const active=contests.filter(c=>c.status==='active'),tracked=active.filter(c=>c.participationMethod==='supervisor_tracked');
   $('contestSummaryCards').innerHTML='<div class="stat"><strong>'+active.length+'</strong><small>Active Contests</small></div><div class="stat"><strong>'+pending.length+'</strong><small>Pending Employee Reviews</small></div><div class="stat"><strong>'+tracked.length+'</strong><small>Supervisor Tracked</small></div>';
-  $('contestsList').innerHTML=contests.length?contests.map(c=>'<div class="contest-op-card"><div style="display:flex;justify-content:space-between;gap:10px;align-items:flex-start"><div><b>'+esc(c.name)+'</b><div class="muted">'+esc(c.target||'No description')+' · '+esc(c.start)+' → '+esc(c.end)+'</div></div><button class="alt edit-contest" data-id="'+esc(c.id)+'" type="button">Edit Setup</button></div><div class="tags"><span class="contest-op-tag method">'+esc(methodLabel(c.participationMethod))+'</span><span class="contest-op-tag">'+esc(c.status)+'</span><span class="contest-op-tag reward">'+esc(rewardText(c))+'</span>'+(c.metricName?'<span class="contest-op-tag">'+esc(c.metricName)+(c.goalValue?' · Goal '+esc(c.goalValue)+' '+esc(c.unit||''):'')+'</span>':'')+(c.participationMethod==='setup_required'?'<span class="contest-op-tag" style="background:#fff0f0;color:#9f3030">Employee action is disabled until setup is completed</span>':'')+'</div></div>').join(''):'<p>No contests created yet.</p>';document.querySelectorAll('.edit-contest').forEach(b=>b.onclick=()=>editContest(b.dataset.id));
+  $('contestsList').innerHTML=contests.length?contests.map(c=>{
+    const controls=[];
+    controls.push('<button class="alt edit-contest" data-id="'+esc(c.id)+'" type="button">Edit Setup</button>');
+    if(['active','upcoming'].includes(c.status))controls.push('<button class="alt contest-life" data-id="'+esc(c.id)+'" data-status="paused" type="button">Pause</button>');
+    if(c.status==='paused')controls.push('<button class="contest-life" data-id="'+esc(c.id)+'" data-status="active" type="button">Resume</button>');
+    if(['active','upcoming','paused'].includes(c.status))controls.push('<button class="alt contest-life" data-id="'+esc(c.id)+'" data-status="cancelled" type="button">Cancel</button>');
+    if(!['archived','deleted'].includes(c.status))controls.push('<button class="alt contest-life" data-id="'+esc(c.id)+'" data-status="archived" type="button">Archive</button>');
+    if(viewer&&viewer.role==='Administrator')controls.push('<button class="alt contest-delete" data-id="'+esc(c.id)+'" type="button">Delete</button>');
+    return '<div class="contest-op-card"><div style="display:flex;justify-content:space-between;gap:10px;align-items:flex-start"><div><b>'+esc(c.name)+'</b><div class="muted">'+esc(c.target||'No description')+' · '+esc(c.start)+' → '+esc(c.end)+'</div></div><div style="display:flex;gap:6px;flex-wrap:wrap;justify-content:flex-end">'+controls.join('')+'</div></div><div class="tags"><span class="contest-op-tag method">'+esc(methodLabel(c.participationMethod))+'</span><span class="contest-op-tag">'+esc(c.status)+'</span><span class="contest-op-tag reward">'+esc(rewardText(c))+'</span>'+(c.metricName?'<span class="contest-op-tag">'+esc(c.metricName)+(c.goalValue?' · Goal '+esc(c.goalValue)+' '+esc(c.unit||''):'')+'</span>':'')+(c.participationMethod==='setup_required'?'<span class="contest-op-tag" style="background:#fff0f0;color:#9f3030">Employee action is disabled until setup is completed</span>':'')+'</div></div>';
+  }).join(''):'<p>No contests created yet.</p>';
+  document.querySelectorAll('.edit-contest').forEach(b=>b.onclick=()=>editContest(b.dataset.id));
+  document.querySelectorAll('.contest-life').forEach(b=>b.onclick=()=>changeContestStatus(b.dataset.id,b.dataset.status));
+  document.querySelectorAll('.contest-delete').forEach(b=>b.onclick=()=>deleteContest(b.dataset.id));
   $('contestPendingEntries').innerHTML=pending.length?pending.map(e=>{
     const c=contests.find(x=>x.id===e.contestID)||{};
     return '<div class="contest-review-row"><div><b>'+esc(e.employeeName)+'</b><div class="muted">'+esc(e.contestName)+' · '+esc(methodLabel(e.entryMethod))+'</div></div><div>'+(e.referenceNumber?'<b>Ref:</b> '+esc(e.referenceNumber)+'<br>':'')+(e.metricValue!=null?'<b>Value:</b> '+esc(e.metricValue)+' '+esc(c.unit||''):'')+'</div><div>'+esc(e.employeeNote||'No employee note')+'</div><div><input id="verify-'+esc(e.entryID)+'" type="number" step="0.01" placeholder="Verified value" style="max-width:125px;margin-bottom:5px"><br><button class="review-approve" data-id="'+esc(e.entryID)+'">Approve</button> <button class="alt review-reject" data-id="'+esc(e.entryID)+'">Reject</button></div></div>';
@@ -1308,15 +1330,35 @@ function render(){
 async function load(){
   if(busy)return;busy=true;
   try{
-    const [d,u]=await Promise.all([window.SEHC_API_V60.jsonp('contestAdminV61',{},10000),window.SEHC_API_V60.jsonp('adminUsersV60',{},10000)]);
+    const [d,u]=await Promise.all([window.SEHC_API_V60.jsonp('contestAdminV63',{},10000),window.SEHC_API_V60.jsonp('adminUsersV60',{},10000)]);
     if(!d||!d.ok)throw new Error(d&&d.error?d.error:'Unable to load contest operations');
     if(!u||!u.ok)throw new Error(u&&u.error?u.error:'Unable to load employees');
-    snapshot=d;users=u.users||[];render();
+    snapshot=d;viewer=d.viewer||u.viewer||null;users=u.users||[];render();
     $('contestCreateStatus').textContent='Contest engine synchronized with Google Sheets.';
   }catch(err){$('contestCreateStatus').textContent='Contest engine could not load: '+(err.message||String(err))}
   finally{busy=false}
 }
 
+
+async function changeContestStatus(id,status){
+  const c=(snapshot.contests||[]).find(x=>x.id===id);if(!c)return;
+  const verb=status==='paused'?'pause':status==='active'?'resume':status==='cancelled'?'cancel':'archive';
+  if(!confirm('Are you sure you want to '+verb+' "'+c.name+'"?'))return;
+  try{
+    const d=await window.SEHC_API_V60.command('adminSetContestStatus',{contestID:id,status},25000);
+    if(!d||!d.ok)throw new Error(d&&d.error?d.error:'Contest status update failed');
+    $('contestCreateStatus').textContent='Contest '+verb+'d successfully.';await load();
+  }catch(err){$('contestCreateStatus').textContent='Contest status was NOT changed: '+(err.message||String(err))}
+}
+async function deleteContest(id){
+  const c=(snapshot.contests||[]).find(x=>x.id===id);if(!c)return;
+  if(!confirm('DELETE "'+c.name+'"? This is only allowed when the contest has no entries, progress, or awards.'))return;
+  try{
+    const d=await window.SEHC_API_V60.command('adminDeleteContest',{contestID:id},25000);
+    if(!d||!d.ok)throw new Error(d&&d.error?d.error:'Contest could not be deleted');
+    $('contestCreateStatus').textContent='Contest deleted.';await load();
+  }catch(err){$('contestCreateStatus').textContent='Contest was NOT deleted: '+(err.message||String(err))}
+}
 function resetContestForm(){
   $('contestEditingID').value='';$('contestName').value='';$('contestTarget').value='';$('contestMethod').value='employee_submission';$('contestSubmissionType').value='reference';
   $('contestMetricName').value='';$('contestGoalValue').value='';$('contestUnit').value='';$('contestWalletPoints').value='0';$('contestRaffleTickets').value='0';$('contestDirectReward').value='';
