@@ -277,7 +277,20 @@ header nav{flex:0 0 auto}.sehc-sidebar-session{margin-top:auto;padding:14px 8px 
 #umStatus.is-ok{color:#17683d;font-weight:700}
 #umStatus .mini-spinner{width:14px;height:14px;border:2px solid #cbe2e8;border-top-color:#0785a8;border-radius:50%;animation:umspin .8s linear infinite;display:inline-block}
 </style>
-</head><body>
+
+<style id="sehc-contest-engine-v61-style">
+.contest-builder-grid{display:grid;grid-template-columns:repeat(4,minmax(160px,1fr));gap:12px;margin-bottom:14px}.contest-builder-grid .wide{grid-column:1/-1}
+.contest-builder-grid label{font-weight:800;font-size:12px;color:#315b6c}.contest-builder-grid input,.contest-builder-grid select{width:100%;margin-top:5px}
+.contest-builder-help{padding:12px 14px;border:1px solid #bcdbe3;background:#eff9fb;border-radius:12px;color:#315d6d}
+.contest-reward-builder{padding:14px;border:1px solid #d8e7ec;background:#fbfdfe;border-radius:14px}.contest-reward-builder h3{margin:0 0 3px}
+.contest-op-card{border:1px solid #d4e5eb;border-radius:14px;padding:14px;margin:10px 0;background:#fff}
+.contest-op-card .tags{display:flex;gap:6px;flex-wrap:wrap;margin-top:7px}.contest-op-tag{padding:4px 8px;border-radius:999px;background:#e9f5f8;color:#185b70;font-size:11px;font-weight:800}
+.contest-op-tag.reward{background:#fff2d5;color:#765500}.contest-op-tag.method{background:#eeeafa;color:#594688}
+.contest-review-row{display:grid;grid-template-columns:1.4fr 1fr 1.2fr auto;gap:10px;align-items:center;border-top:1px solid #dce8ec;padding:12px 0}.contest-review-row:first-child{border-top:0}
+.contest-progress-row{display:grid;grid-template-columns:1.2fr 1.2fr .8fr .8fr 1fr;gap:10px;padding:10px 0;border-top:1px solid #dce8ec}
+@media(max-width:900px){.contest-builder-grid{grid-template-columns:1fr 1fr}.contest-review-row,.contest-progress-row{grid-template-columns:1fr 1fr}}
+@media(max-width:600px){.contest-builder-grid,.contest-review-row,.contest-progress-row{grid-template-columns:1fr}}
+</style></head><body>
 <style id="sehc-auth-ui">
 #sehcAuthGate{position:fixed;inset:0;z-index:99999;background:#eef8fb;display:flex;align-items:center;justify-content:center;font-family:Segoe UI,Arial;color:#00475c}
 #sehcAuthGate .box{background:white;border:1px solid #d9e9ee;border-radius:16px;padding:24px 30px;box-shadow:0 12px 40px #00475c22;text-align:center}
@@ -311,31 +324,93 @@ const sehcDoLogout=function(){const n='logout'+Date.now(),f=document.createEleme
 <div class="panel"><h2>Arcade Approvals</h2><p>Arcade approvals are still running in the local demo while we connect the remaining modules.</p><div id="queue"></div></div>
 <div class="panel" id="redemption-panel"><h2>Reward Redemption Requests</h2><div id="redemptionQueue"></div></div></section>
 <section class="hidden" id="contests">
-<h1>Ad Hoc Contest Builder</h1>
+<h1>Ad Hoc Contest Engine</h1>
+<p>Create short-term incentives with clear participation rules, verification workflows, and rewards.</p>
+
 <div class="panel">
   <h2>Create Contest</h2>
-  <p>Create short-term contests that can award Wallet Points, Raffle Tickets, or both.</p>
-  <div class="fields">
-    <label>Contest name<input id="contestName" placeholder="Friday Payment Sprint"/></label>
-    <label>Target / description<input id="contestTarget" placeholder="Client or qualifying activity"/></label>
-    <label>Wallet points<input id="contestWalletPoints" min="0" type="number" value="50"/></label>
-    <label>Raffle tickets<input id="contestRaffleTickets" min="0" max="100" type="number" value="0"/></label>
-    <label>Start date<input id="contestStart" type="date"/></label>
-    <label>Expiration date<input id="contestEnd" type="date" required/></label>
+  <div class="contest-builder-grid">
+    <label>Contest Name<input id="contestName" placeholder="Friday Payment Sprint"></label>
+    <label>Participation Method
+      <select id="contestMethod">
+        <option value="employee_submission">Employee Submission</option>
+        <option value="supervisor_tracked">Supervisor Tracked</option>
+        <option value="hybrid">Employee Claim + Supervisor Verification</option>
+      </select>
+    </label>
+    <label class="wide">Contest Description / Qualification Rule<input id="contestTarget" placeholder="Example: Process a qualifying payment of $500 or more"></label>
+
+    <div class="contest-builder-help wide" id="contestMethodHelp"></div>
+
+    <label id="submissionTypeWrap">Employee Entry Requirement
+      <select id="contestSubmissionType">
+        <option value="reference">Account / Reference Number</option>
+        <option value="number">Numeric Value</option>
+        <option value="reference_number">Reference Number + Numeric Value</option>
+        <option value="note">Employee Note / Claim</option>
+      </select>
+    </label>
+    <label id="metricNameWrap">Tracking Metric<input id="contestMetricName" placeholder="Payments Processed"></label>
+    <label id="goalValueWrap">Goal<input id="contestGoalValue" type="number" min="0" step="0.01" placeholder="10"></label>
+    <label id="unitWrap">Unit<input id="contestUnit" placeholder="payments, dollars, accounts"></label>
+
+    <div class="wide contest-reward-builder">
+      <h3>Reward Package</h3>
+      <p class="muted">A contest can award one reward or combine several rewards.</p>
+      <div class="fields">
+        <label>Wallet Points<input id="contestWalletPoints" min="0" type="number" value="0"></label>
+        <label>Raffle Tickets<input id="contestRaffleTickets" min="0" max="100" type="number" value="0"></label>
+        <label>Direct Reward<input id="contestDirectReward" placeholder="$10 Gift Card, Team Lunch, etc."></label>
+      </div>
+    </div>
+
+    <label>Start Date<input id="contestStart" type="date"></label>
+    <label>Expiration Date<input id="contestEnd" type="date" required></label>
   </div>
-  <button id="createContestBtn" type="button">Create Contest</button>
+  <button id="createContestBtn" type="button">Publish Contest</button>
   <p id="contestCreateStatus" role="status"></p>
 </div>
-<div class="panel"><h2>Active &amp; Previous Contests</h2><div id="contestsList"></div></div>
+
 <div class="panel">
-  <h2>Manual Award (Supervisor / Admin)</h2>
-  <p>Award Wallet Points, Raffle Tickets, or both. Add a note so the reason is retained in the audit trail.</p>
+  <h2>Contest Operations Dashboard</h2>
+  <div class="grid" id="contestSummaryCards"></div>
+  <div id="contestsList" style="margin-top:14px"></div>
+</div>
+
+<div class="panel">
+  <h2>Employee Submissions & Claims</h2>
+  <p>Entries from Employee Submission and Employee Claim + Supervisor Verification contests appear here.</p>
+  <button id="refreshContestReviews" class="alt" type="button">Refresh Reviews</button>
+  <div id="contestPendingEntries" style="margin-top:12px"></div>
+</div>
+
+<div class="panel">
+  <h2>Supervisor Tracked Progress</h2>
+  <p>Use internal reporting to update employee progress. Award the configured reward when the employee qualifies.</p>
+  <div class="fields">
+    <label>Contest<select id="progressContest"><option value="">Select tracked contest</option></select></label>
+    <label>Employee<select id="progressEmployee"><option value="">Select employee</option></select></label>
+    <label>Current Metric Value<input id="progressValue" type="number" step="0.01"></label>
+    <label>Supervisor Note<input id="progressNote" maxlength="300" placeholder="Source/report or context"></label>
+  </div>
+  <div style="display:flex;gap:10px;flex-wrap:wrap">
+    <button id="saveProgressBtn" type="button">Update Progress</button>
+    <button id="awardProgressBtn" class="alt" type="button">Update + Award Reward</button>
+  </div>
+  <p id="progressStatus" role="status"></p>
+  <div id="contestProgressList"></div>
+</div>
+
+<div class="panel">
+  <h2>Manual Contest Award</h2>
+  <p>Use this when Operations needs to issue an award directly without an employee submission or tracked-progress update.</p>
   <div class="fields">
     <label>Employee<select id="awardEmployee"><option value="">Select employee</option></select></label>
     <label>Contest<select id="awardContest"><option value="">Manual / No Contest</option></select></label>
-    <label>Wallet points<input id="awardWalletPoints" min="0" type="number" value="0"/></label>
-    <label>Raffle tickets<input id="awardRaffleTickets" min="0" max="100" type="number" value="0"/></label>
-    <label style="grid-column:span 2">Reason / audit note<input id="awardNote" maxlength="300" placeholder="Why is this award being issued?"/></label>
+    <label>Wallet Points<input id="awardWalletPoints" min="0" type="number" value="0"></label>
+    <label>Raffle Tickets<input id="awardRaffleTickets" min="0" max="100" type="number" value="0"></label>
+    <label>Direct Reward<input id="awardDirectReward" placeholder="$5 Gift Card"></label>
+    <label>Reason / Audit Note<input id="awardNote" maxlength="300" placeholder="Why is this award being issued?"></label>
   </div>
   <button id="awardContestBtn" type="button">Issue Award</button>
   <p id="awardContestStatus" role="status"></p>
@@ -1191,66 +1266,114 @@ else window.addEventListener('sehc-auth-ready',init,{once:true});
 })();
 </script>
 
-<script id="sehc-contests-admin-v60">
+
+
+<script id="sehc-contests-admin-v61">
 (function(){
-const $=id=>document.getElementById(id);
-let contests=[],contestUsers=[],busy=false,started=false;
+const $=id=>document.getElementById(id);let snapshot={contests:[],pendingEntries:[],recentEntries:[],progress:[]},users=[],busy=false,started=false;
 function esc(s){return String(s??'').replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]))}
-function rewardText(c){const a=[];if(Number(c.walletPoints)>0)a.push(Number(c.walletPoints).toLocaleString()+' Wallet Points');if(Number(c.raffleTickets)>0)a.push(Number(c.raffleTickets)+' Raffle Ticket'+(Number(c.raffleTickets)===1?'':'s'));return a.join(' + ')||'No reward'}
+function methodLabel(m){return m==='employee_submission'?'Employee Submission':m==='supervisor_tracked'?'Supervisor Tracked':'Employee Claim + Supervisor Verification'}
+function rewardText(c){const a=[];if(Number(c.walletPoints)>0)a.push(Number(c.walletPoints).toLocaleString()+' Wallet Points');if(Number(c.raffleTickets)>0)a.push(Number(c.raffleTickets)+' Raffle Ticket'+(Number(c.raffleTickets)===1?'':'s'));if(c.directReward)a.push(c.directReward);return a.join(' + ')||'No reward'}
+function renderBuilder(){
+  const m=$('contestMethod').value;
+  $('submissionTypeWrap').style.display=m==='supervisor_tracked'?'none':'block';
+  $('metricNameWrap').style.display=m==='employee_submission'?'none':'block';
+  $('goalValueWrap').style.display=m==='employee_submission'?'none':'block';
+  $('unitWrap').style.display=m==='employee_submission'?'none':'block';
+  $('contestMethodHelp').innerHTML=m==='employee_submission'
+    ?'<b>Employee Submission:</b> employee enters the required information and the item goes to Supervisor Review.'
+    :m==='supervisor_tracked'
+      ?'<b>Supervisor Tracked:</b> employee does not submit anything. Operations updates progress from internal reports.'
+      :'<b>Employee Claim + Supervisor Verification:</b> employee submits a claim/reference and Operations verifies the final result before approval.';
+}
 function render(){
-  if(!$('contestsList'))return;
-  $('contestsList').innerHTML=contests.length?contests.map(c=>'<div class="item"><div><b>'+esc(c.name)+'</b><div class="muted">'+esc(c.target||'No description')+' · '+esc(c.start)+' → '+esc(c.end)+'</div><div style="margin-top:4px"><span class="tag">'+esc(rewardText(c))+'</span> <span class="tag">'+esc(c.status)+'</span> '+(c.status==='active'?'<span class="tag">Visible to Employees</span>':'')+'</div></div></div>').join(''):'<p>No contests have been created yet.</p>';
-  const active=contests.filter(c=>c.status==='active');
+  const contests=snapshot.contests||[],pending=snapshot.pendingEntries||[],progress=snapshot.progress||[];
+  const active=contests.filter(c=>c.status==='active'),tracked=active.filter(c=>c.participationMethod==='supervisor_tracked');
+  $('contestSummaryCards').innerHTML='<div class="stat"><strong>'+active.length+'</strong><small>Active Contests</small></div><div class="stat"><strong>'+pending.length+'</strong><small>Pending Employee Reviews</small></div><div class="stat"><strong>'+tracked.length+'</strong><small>Supervisor Tracked</small></div>';
+  $('contestsList').innerHTML=contests.length?contests.map(c=>'<div class="contest-op-card"><b>'+esc(c.name)+'</b><div class="muted">'+esc(c.target||'No description')+' · '+esc(c.start)+' → '+esc(c.end)+'</div><div class="tags"><span class="contest-op-tag method">'+esc(methodLabel(c.participationMethod))+'</span><span class="contest-op-tag">'+esc(c.status)+'</span><span class="contest-op-tag reward">'+esc(rewardText(c))+'</span>'+(c.metricName?'<span class="contest-op-tag">'+esc(c.metricName)+(c.goalValue?' · Goal '+esc(c.goalValue)+' '+esc(c.unit||''):'')+'</span>':'')+'</div></div>').join(''):'<p>No contests created yet.</p>';
+  $('contestPendingEntries').innerHTML=pending.length?pending.map(e=>{
+    const c=contests.find(x=>x.id===e.contestID)||{};
+    return '<div class="contest-review-row"><div><b>'+esc(e.employeeName)+'</b><div class="muted">'+esc(e.contestName)+' · '+esc(methodLabel(e.entryMethod))+'</div></div><div>'+(e.referenceNumber?'<b>Ref:</b> '+esc(e.referenceNumber)+'<br>':'')+(e.metricValue!=null?'<b>Value:</b> '+esc(e.metricValue)+' '+esc(c.unit||''):'')+'</div><div>'+esc(e.employeeNote||'No employee note')+'</div><div><input id="verify-'+esc(e.entryID)+'" type="number" step="0.01" placeholder="Verified value" style="max-width:125px;margin-bottom:5px"><br><button class="review-approve" data-id="'+esc(e.entryID)+'">Approve</button> <button class="alt review-reject" data-id="'+esc(e.entryID)+'">Reject</button></div></div>';
+  }).join(''):'<p>No pending contest submissions or claims.</p>';
+  document.querySelectorAll('.review-approve').forEach(b=>b.onclick=()=>reviewEntry(b.dataset.id,'approve'));
+  document.querySelectorAll('.review-reject').forEach(b=>b.onclick=()=>reviewEntry(b.dataset.id,'reject'));
+
+  $('progressContest').innerHTML='<option value="">Select tracked contest</option>'+tracked.map(c=>'<option value="'+esc(c.id)+'">'+esc(c.name)+'</option>').join('');
+  const employeeOptions=users.filter(u=>u.role==='Employee'&&u.status==='Active').map(u=>'<option value="'+esc(u.employeeID)+'">'+esc(u.fullName)+' · '+esc(u.employeeID)+'</option>').join('');
+  $('progressEmployee').innerHTML='<option value="">Select employee</option>'+employeeOptions;
+  $('awardEmployee').innerHTML='<option value="">Select employee</option>'+employeeOptions;
   $('awardContest').innerHTML='<option value="">Manual / No Contest</option>'+active.map(c=>'<option value="'+esc(c.id)+'">'+esc(c.name)+'</option>').join('');
-  $('awardEmployee').innerHTML='<option value="">Select employee</option>'+contestUsers.filter(u=>u.role==='Employee'&&u.status==='Active').map(u=>'<option value="'+esc(u.employeeID)+'">'+esc(u.fullName)+' · '+esc(u.employeeID)+'</option>').join('');
+  $('contestProgressList').innerHTML=progress.length?progress.map(p=>'<div class="contest-progress-row"><div><b>'+esc(p.employeeName)+'</b></div><div>'+esc(p.contestName)+'</div><div>'+esc(p.metricValue)+' / '+esc(p.goalValue||'—')+' '+esc(p.unit||'')+'</div><div>'+esc(p.status)+'</div><div class="muted">'+esc(p.updatedBy||'')+'</div></div>').join(''):'<p>No supervisor-tracked progress has been entered yet.</p>';
 }
 async function load(){
   if(busy)return;busy=true;
   try{
-    const [c,u]=await Promise.all([
-      window.SEHC_API_V60.jsonp('contests',{},9000),
-      window.SEHC_API_V60.jsonp('adminUsersV60',{},9000)
-    ]);
-    if(!c||!c.ok)throw new Error(c&&c.error?c.error:'Unable to load contests');
+    const [d,u]=await Promise.all([window.SEHC_API_V60.jsonp('contestAdminV61',{},10000),window.SEHC_API_V60.jsonp('adminUsersV60',{},10000)]);
+    if(!d||!d.ok)throw new Error(d&&d.error?d.error:'Unable to load contest operations');
     if(!u||!u.ok)throw new Error(u&&u.error?u.error:'Unable to load employees');
-    contests=c.contests||[];contestUsers=u.users||[];render();
-    if($('contestCreateStatus'))$('contestCreateStatus').textContent='Contest data loaded from Google Sheets.';
-  }catch(err){if($('contestCreateStatus'))$('contestCreateStatus').textContent='Unable to load contest data: '+(err.message||String(err))}
+    snapshot=d;users=u.users||[];render();
+    $('contestCreateStatus').textContent='Contest engine synchronized with Google Sheets.';
+  }catch(err){$('contestCreateStatus').textContent='Contest engine could not load: '+(err.message||String(err))}
   finally{busy=false}
 }
-async function createContest(){
+async function create(){
   if(busy)return;
-  const name=$('contestName').value.trim(),target=$('contestTarget').value.trim(),walletPoints=+$('contestWalletPoints').value||0,raffleTickets=+$('contestRaffleTickets').value||0,start=$('contestStart').value,end=$('contestEnd').value;
-  if(!name)return alert('Enter a contest name.');if(!start||!end)return alert('Choose a start and expiration date.');if(start>end)return alert('Expiration date cannot be before start date.');if(walletPoints<1&&raffleTickets<1)return alert('Choose Wallet Points, Raffle Tickets, or both.');
-  busy=true;$('createContestBtn').disabled=true;$('createContestBtn').textContent='Publishing…';$('contestCreateStatus').textContent='Publishing contest to Google Sheets and the Employee Portal…';
+  const fields={
+    name:$('contestName').value.trim(),target:$('contestTarget').value.trim(),participationMethod:$('contestMethod').value,
+    submissionType:$('contestSubmissionType').value,metricName:$('contestMetricName').value.trim(),
+    goalValue:$('contestGoalValue').value,unit:$('contestUnit').value.trim(),
+    walletPoints:$('contestWalletPoints').value,raffleTickets:$('contestRaffleTickets').value,
+    directReward:$('contestDirectReward').value.trim(),start:$('contestStart').value,end:$('contestEnd').value
+  };
+  if(!fields.name)return alert('Enter a contest name.');if(!fields.start||!fields.end)return alert('Select start and expiration dates.');
+  if(Number(fields.walletPoints||0)<1&&Number(fields.raffleTickets||0)<1&&!fields.directReward)return alert('Configure at least one reward.');
+  busy=true;$('createContestBtn').disabled=true;$('createContestBtn').textContent='Publishing…';$('contestCreateStatus').textContent='Publishing contest rules and rewards…';
   try{
-    const d=await window.SEHC_API_V60.command('adminCreateContest',{name,target,walletPoints,raffleTickets,start,end},25000);
-    if(!d||!d.ok)throw new Error(d&&d.error?d.error:'Contest was not created');
-    $('contestCreateStatus').textContent='Contest published successfully. Active contests are now visible in the Employee Portal.';
-    $('contestName').value='';$('contestTarget').value='';$('contestWalletPoints').value='0';$('contestRaffleTickets').value='0';
-    await load();
+    const d=await window.SEHC_API_V60.command('adminCreateContest',fields,25000);if(!d||!d.ok)throw new Error(d&&d.error?d.error:'Contest was not created');
+    $('contestCreateStatus').textContent='Contest published successfully and is available to the appropriate employee workflow.';
+    ['contestName','contestTarget','contestMetricName','contestGoalValue','contestUnit','contestDirectReward'].forEach(id=>$(id).value='');
+    $('contestWalletPoints').value='0';$('contestRaffleTickets').value='0';await load();
   }catch(err){$('contestCreateStatus').textContent='Contest was NOT published: '+(err.message||String(err))}
-  finally{busy=false;$('createContestBtn').disabled=false;$('createContestBtn').textContent='Create Contest'}
+  finally{busy=false;$('createContestBtn').disabled=false;$('createContestBtn').textContent='Publish Contest'}
 }
-async function award(){
-  if(busy)return;
-  const employeeID=$('awardEmployee').value,contestID=$('awardContest').value,walletPoints=+$('awardWalletPoints').value||0,raffleTickets=+$('awardRaffleTickets').value||0,note=$('awardNote').value.trim();
-  if(!employeeID)return alert('Select an employee.');if(walletPoints<1&&raffleTickets<1)return alert('Award Wallet Points, Raffle Tickets, or both.');if(!note)return alert('Enter a reason / audit note.');
-  busy=true;$('awardContestBtn').disabled=true;$('awardContestBtn').textContent='Recording…';$('awardContestStatus').textContent='Recording award in Google Sheets…';
+async function reviewEntry(id,decision){
+  const note=prompt(decision==='approve'?'Supervisor approval note (optional):':'Reason for rejection:','')??'';
+  const verified=$('verify-'+id)?.value||'';
   try{
-    const d=await window.SEHC_API_V60.command('adminAwardContest',{employeeID,contestID,walletPoints,raffleTickets,note},25000);
+    const d=await window.SEHC_API_V60.command('adminReviewContestEntry',{entryID:id,decision,note,verifiedValue:verified},25000);
+    if(!d||!d.ok)throw new Error(d&&d.error?d.error:'Review failed');await load();
+  }catch(err){alert(err.message||String(err))}
+}
+async function updateProgress(awardNow){
+  const contestID=$('progressContest').value,employeeID=$('progressEmployee').value,metricValue=$('progressValue').value,note=$('progressNote').value.trim();
+  if(!contestID||!employeeID||metricValue==='')return alert('Select a tracked contest, employee, and metric value.');
+  $('progressStatus').textContent=awardNow?'Updating progress and recording reward…':'Updating progress…';
+  try{
+    const d=await window.SEHC_API_V60.command('adminUpdateContestProgress',{contestID,employeeID,metricValue,note,awardNow},25000);
+    if(!d||!d.ok)throw new Error(d&&d.error?d.error:'Progress update failed');
+    $('progressStatus').textContent=awardNow?'Progress updated and reward recorded.':'Progress updated successfully.';await load();
+  }catch(err){$('progressStatus').textContent='NOT SAVED: '+(err.message||String(err))}
+}
+async function manualAward(){
+  const employeeID=$('awardEmployee').value,contestID=$('awardContest').value,walletPoints=$('awardWalletPoints').value,raffleTickets=$('awardRaffleTickets').value,directReward=$('awardDirectReward').value.trim(),note=$('awardNote').value.trim();
+  if(!employeeID)return alert('Select an employee.');if(Number(walletPoints||0)<1&&Number(raffleTickets||0)<1&&!directReward)return alert('Configure a reward.');if(!note)return alert('Enter an audit note.');
+  $('awardContestStatus').textContent='Recording award…';
+  try{
+    const d=await window.SEHC_API_V60.command('adminAwardContest',{employeeID,contestID,walletPoints,raffleTickets,directReward,note},25000);
     if(!d||!d.ok)throw new Error(d&&d.error?d.error:'Award failed');
-    $('awardContestStatus').textContent='Award recorded successfully. Wallet Points and/or Raffle Tickets are now visible to the employee.';
-    $('awardWalletPoints').value='0';$('awardRaffleTickets').value='0';$('awardNote').value='';
+    $('awardContestStatus').textContent='Award recorded successfully.';await load();
   }catch(err){$('awardContestStatus').textContent='Award was NOT recorded: '+(err.message||String(err))}
-  finally{busy=false;$('awardContestBtn').disabled=false;$('awardContestBtn').textContent='Issue Award'}
 }
 function init(){
   if(started)return;started=true;
-  $('createContestBtn')?.addEventListener('click',createContest);$('awardContestBtn')?.addEventListener('click',award);
-  $('awardContest')?.addEventListener('change',()=>{const c=contests.find(x=>x.id===$('awardContest').value);if(c){$('awardWalletPoints').value=Number(c.walletPoints)||0;$('awardRaffleTickets').value=Number(c.raffleTickets)||0}});
+  $('contestMethod').addEventListener('change',renderBuilder);renderBuilder();
+  $('createContestBtn').addEventListener('click',create);$('refreshContestReviews').addEventListener('click',load);
+  $('saveProgressBtn').addEventListener('click',()=>updateProgress(false));$('awardProgressBtn').addEventListener('click',()=>updateProgress(true));
+  $('awardContestBtn').addEventListener('click',manualAward);
+  $('awardContest').addEventListener('change',()=>{const c=(snapshot.contests||[]).find(x=>x.id===$('awardContest').value);if(c){$('awardWalletPoints').value=c.walletPoints||0;$('awardRaffleTickets').value=c.raffleTickets||0;$('awardDirectReward').value=c.directReward||''}});
   document.querySelector('button[onclick="go(\'contests\')"]')?.addEventListener('click',load);
-  if($('contestStart')&&!$('contestStart').value)$('contestStart').value=new Date().toLocaleDateString('en-CA');
+  if(!$('contestStart').value)$('contestStart').value=new Date().toLocaleDateString('en-CA');
+  load();
 }
 if(window.SEHC_CURRENT_USER)init();else window.addEventListener('sehc-auth-ready',init,{once:true});
 })();
