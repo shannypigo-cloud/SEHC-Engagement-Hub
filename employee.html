@@ -797,21 +797,24 @@ window.SEHC_API_V60={jsonp,command,token,API};
   </div>
 </div>
 
-<script id="sehc-employee-contests-v61">
+<script id="sehc-employee-contests-v65">
 (function(){
-const $=id=>document.getElementById(id);let data=null,busy=false,started=false,currentContest=null,lastLoad=0;
+const $=id=>document.getElementById(id);
+let catalog={activeContests:[],upcomingContests:[]},mine={myEntries:[],progress:[],awards:[]};
+let busy=false,loading=false,started=false,currentContest=null,lastCatalogLoad=0,lastMineLoad=0;
+
 function esc(s){return String(s??'').replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]))}
 function fmtDate(s){if(!s)return '—';const m=String(s).slice(0,10).match(/^(\d{4})-(\d{2})-(\d{2})$/);if(!m)return esc(s);return new Intl.DateTimeFormat('en-US',{month:'short',day:'numeric',year:'numeric'}).format(new Date(+m[1],+m[2]-1,+m[3]))}
 function methodLabel(m){return m==='employee_submission'?'Employee Submission':m==='supervisor_tracked'?'Tracked by Operations':m==='hybrid'?'Claim + Supervisor Verification':'Setup Required by Operations'}
 function rewardHtml(c){const a=[];if(Number(c.walletPoints)>0)a.push('<span class="contest-chip">'+Number(c.walletPoints).toLocaleString()+' Wallet Points</span>');if(Number(c.raffleTickets)>0)a.push('<span class="contest-chip ticket">'+Number(c.raffleTickets)+' Raffle Ticket'+(Number(c.raffleTickets)===1?'':'s')+'</span>');if(c.directReward)a.push('<span class="contest-chip ticket">'+esc(c.directReward)+'</span>');return a.join('')}
-function latestEntry(contestID){return (data.myEntries||[]).filter(e=>e.contestID===contestID).sort((a,b)=>String(b.submittedAt).localeCompare(String(a.submittedAt)))[0]}
-function progressFor(contestID){return (data.progress||[]).find(p=>p.contestID===contestID)}
+function latestEntry(contestID){return (mine.myEntries||[]).filter(e=>e.contestID===contestID).sort((a,b)=>String(b.submittedAt).localeCompare(String(a.submittedAt)))[0]}
+function progressFor(contestID){return (mine.progress||[]).find(p=>p.contestID===contestID)}
+
 function render(){
-  const active=data.activeContests||[],upcoming=data.upcomingContests||[];
-  $('contestNavBadge').textContent=active.length?String(active.length):'';
-  $('employeeContestStatus').innerHTML=active.length?'<b>'+active.length+' active contest'+(active.length===1?'':'s')+'</b> available now.':'No active Ad Hoc Contests right now.';
+  const active=catalog.activeContests||[],upcoming=catalog.upcomingContests||[];
+  if($('contestNavBadge'))$('contestNavBadge').textContent=active.length?String(active.length):'';
   const all=active.concat(upcoming);
-  $('employeeContestList').innerHTML=all.length?all.map(c=>{
+  if($('employeeContestList'))$('employeeContestList').innerHTML=all.length?all.map(c=>{
     const entry=latestEntry(c.id),progress=progressFor(c.id),canSubmit=c.status==='active'&&['employee_submission','hybrid'].includes(c.participationMethod);
     let action='',clickable=false;
     if(c.participationMethod==='supervisor_tracked'){
@@ -830,62 +833,117 @@ function render(){
     }
     return '<div class="contest-card '+(clickable?'contest-card-clickable':'')+'" data-contest-id="'+esc(c.id)+'"><span class="contest-method">'+esc(methodLabel(c.participationMethod))+'</span><div class="contest-title" style="margin-top:10px">'+esc(c.name)+'</div><div>'+esc(c.target||'Follow the published contest criteria.')+'</div><div class="contest-rewards">'+rewardHtml(c)+' <span class="contest-chip '+(c.status==='active'?'active':'')+'">'+esc(c.status)+'</span></div>'+(c.metricName?'<div class="contest-meta">'+esc(c.metricName)+(c.goalValue?' · Goal: '+esc(c.goalValue)+' '+esc(c.unit||''):'')+'</div>':'')+'<div class="contest-meta">'+fmtDate(c.start)+' → '+fmtDate(c.end)+'</div>'+action+'</div>';
   }).join(''):'<div class="card"><p>No active or upcoming contests.</p></div>';
+
   document.querySelectorAll('.contest-submit').forEach(b=>b.onclick=e=>{e.stopPropagation();openEntry(b.dataset.id)});
   document.querySelectorAll('.contest-card-clickable').forEach(card=>card.onclick=e=>{if(e.target.closest('button'))return;openEntry(card.dataset.contestId)});
 
-  const home=$('activeContestHomeCard');if(home){home.style.display=active.length?'block':'none';$('activeContestHomeText').textContent=active.length===1?'1 special incentive is active now.':active.length+' special incentives are active now.';$('activeContestHomeList').innerHTML=active.slice(0,3).map(c=>'<div class="contest-home-item"><b>'+esc(c.name)+'</b><div class="muted">'+esc(methodLabel(c.participationMethod))+' · '+fmtDate(c.end)+' · '+rewardHtml(c)+'</div></div>').join('')}
-  if($('myContestAwards'))$('myContestAwards').innerHTML=(data.awards||[]).length?(data.awards||[]).map(a=>'<div class="contest-award-row"><div><b>'+esc(a.contestName)+'</b><div class="muted">'+esc(a.note||'Award recorded by Operations')+'</div></div><div>'+(a.walletPoints?'<b>+'+Number(a.walletPoints).toLocaleString()+' pts</b>':'')+(a.walletPoints&&(a.raffleTickets||a.directReward)?'<br>':'')+(a.raffleTickets?'<b>+'+a.raffleTickets+' ticket'+(a.raffleTickets===1?'':'s')+'</b>':'')+((a.raffleTickets&&a.directReward)?'<br>':'')+(a.directReward?'<b>'+esc(a.directReward)+'</b>':'')+'</div><div class="muted">'+esc(a.fulfillmentStatus||'')+'<br>'+esc(a.awardedAt||'')+'<br>'+esc(a.awardedBy||'')+'</div></div>').join(''):'<p>No contest awards have been recorded yet.</p>';
-  renderWallet();
+  const home=$('activeContestHomeCard');
+  if(home){
+    home.style.display=active.length?'block':'none';
+    $('activeContestHomeText').textContent=active.length===1?'1 special incentive is active now.':active.length+' special incentives are active now.';
+    $('activeContestHomeList').innerHTML=active.slice(0,3).map(c=>'<div class="contest-home-item"><b>'+esc(c.name)+'</b><div class="muted">'+esc(methodLabel(c.participationMethod))+' · '+fmtDate(c.end)+' · '+rewardHtml(c)+'</div></div>').join('');
+  }
+
+  if($('myContestAwards'))$('myContestAwards').innerHTML=(mine.awards||[]).length?(mine.awards||[]).map(a=>'<div class="contest-award-row"><div><b>'+esc(a.contestName)+'</b><div class="muted">'+esc(a.note||'Award recorded by Operations')+'</div></div><div>'+(a.walletPoints?'<b>+'+Number(a.walletPoints).toLocaleString()+' pts</b>':'')+(a.walletPoints&&(a.raffleTickets||a.directReward)?'<br>':'')+(a.raffleTickets?'<b>+'+a.raffleTickets+' ticket'+(a.raffleTickets===1?'':'s')+'</b>':'')+((a.raffleTickets&&a.directReward)?'<br>':'')+(a.directReward?'<b>'+esc(a.directReward)+'</b>':'')+'</div><div class="muted">'+esc(a.fulfillmentStatus||'')+'<br>'+esc(a.awardedAt||'')+'<br>'+esc(a.awardedBy||'')+'</div></div>').join(''):'<p>No contest awards have been recorded yet.</p>';
 }
-function renderWallet(){
-  if(!data||!data.wallet)return;const w=data.wallet;
-  if($('walletBalance'))$('walletBalance').textContent=Number(w.balance||0).toLocaleString();
-  if($('walletEarned'))$('walletEarned').textContent=Number(w.lifetimeEarned||0).toLocaleString();
-  if($('mwallet'))$('mwallet').textContent=Number(w.balance||0).toLocaleString();
-  if($('ledger'))$('ledger').innerHTML=(w.transactions||[]).length?w.transactions.map(x=>'<div class="item"><span>'+esc(x.reason)+'</span><b>'+((x.delta>0)?'+':'')+Number(x.delta).toLocaleString()+' pts</b></div>').join(''):'<p>No approved wallet transactions yet.</p>';
-}
+
 function openEntry(id){
-  const c=(data.activeContests||[]).find(x=>x.id===id);if(!c)return;currentContest=c;
-  $('contestEntryContestID').value=c.id;$('contestEntryTitle').textContent=c.participationMethod==='hybrid'?'Claim Contest Entry':'Submit Contest Entry';$('contestEntryDescription').textContent=c.name+' · '+c.target;
+  const c=(catalog.activeContests||[]).find(x=>x.id===id);if(!c)return;currentContest=c;
+  $('contestEntryContestID').value=c.id;
+  $('contestEntryTitle').textContent=c.participationMethod==='hybrid'?'Claim Contest Entry':'Submit Contest Entry';
+  $('contestEntryDescription').textContent=c.name+' · '+c.target;
   $('contestEntryReference').value='';$('contestEntryMetric').value='';$('contestEntryNote').value='';$('contestEntrySubmitStatus').textContent='';
   $('contestReferenceWrap').style.display=['reference','reference_number'].includes(c.submissionType)?'block':'none';
   $('contestMetricWrap').style.display=['number','reference_number'].includes(c.submissionType)?'block':'none';
-  $('contestNoteWrap').style.display=c.submissionType==='note'||c.participationMethod==='hybrid'?'block':'block';
+  $('contestNoteWrap').style.display='block';
   $('contestEntryModal').classList.add('open');
 }
+
 async function submitEntry(){
   if(!currentContest||busy)return;
   busy=true;$('contestEntrySubmit').disabled=true;$('contestEntrySubmit').textContent='Submitting…';$('contestEntrySubmitStatus').textContent='Sending entry to Operations…';
   try{
-    const d=await window.SEHC_API_V60.command('contestSubmitEntry',{contestID:currentContest.id,referenceNumber:$('contestEntryReference').value.trim(),metricValue:$('contestEntryMetric').value,employeeNote:$('contestEntryNote').value.trim()},25000);
+    const d=await window.SEHC_API_V60.command('contestSubmitEntry',{
+      contestID:currentContest.id,
+      referenceNumber:$('contestEntryReference').value.trim(),
+      metricValue:$('contestEntryMetric').value,
+      employeeNote:$('contestEntryNote').value.trim()
+    },25000);
     if(!d||!d.ok)throw new Error(d&&d.error?d.error:'Entry was not submitted');
     $('contestEntrySubmitStatus').textContent='Submitted successfully · Pending Supervisor Review';
-    setTimeout(()=>{$('contestEntryModal').classList.remove('open')},700);await load(true);
+    setTimeout(()=>{$('contestEntryModal').classList.remove('open')},700);
+    await loadMine(true);render();
   }catch(err){$('contestEntrySubmitStatus').textContent='NOT SUBMITTED: '+(err.message||String(err))}
   finally{busy=false;$('contestEntrySubmit').disabled=false;$('contestEntrySubmit').textContent='Submit for Review'}
 }
-async function load(force=false){
-  if(busy)return;if(!force&&data&&Date.now()-lastLoad<60000){render();return}
-  busy=true;$('employeeContestStatus').textContent='Loading contests from Operations…';
-  try{
-    const d=await window.SEHC_API_V60.jsonp('employeeContestsV63',{},10000);if(!d||!d.ok)throw new Error(d&&d.error?d.error:'Unable to load contests');
-    data=d;lastLoad=Date.now();render();
-    const stamp=new Intl.DateTimeFormat('en-US',{hour:'numeric',minute:'2-digit'}).format(new Date());
-    if((d.activeContests||[]).length===0&&(d.upcomingContests||[]).length===0)$('employeeContestStatus').innerHTML='<b>No active contests.</b> Last checked '+stamp+'.';
-  }catch(err){
-    $('contestNavBadge').textContent='';
-    $('employeeContestStatus').innerHTML='<b>Contest data could not be loaded.</b><br>'+esc(err.message||String(err))+'<br><span class="muted">Use Refresh Contests to retry.</span>';
-    $('employeeContestList').innerHTML='<div class="card"><p>The contest service did not return data. This does not affect Daily Bingo or your login.</p><button class="btn alt" id="contestRetryInline" type="button">Retry Contest Load</button></div>';
-    setTimeout(()=>$('contestRetryInline')?.addEventListener('click',()=>load(true)),0);
-  }finally{busy=false}
+
+// Apps Script cold starts routinely take 5-15s; retry once on timeout/network failure.
+async function jsonpRetry(action,params,timeout){
+  try{return await window.SEHC_API_V60.jsonp(action,params,timeout)}
+  catch(err){
+    if(!/too long|Unable to reach/i.test(err&&err.message||''))throw err;
+    return await window.SEHC_API_V60.jsonp(action,params,timeout);
+  }
 }
+async function pingBackend(){
+  try{
+    const d=await jsonpRetry('contestPingV65',{},20000);
+    if(!d||!d.ok)throw new Error(d&&d.error?d.error:'Contest backend ping failed');
+    return d;
+  }catch(err){throw new Error('Contest backend is not reachable: '+(err.message||String(err)))}
+}
+
+async function loadCatalog(force=false){
+  if(!force&&catalog.activeContests&&Date.now()-lastCatalogLoad<60000)return;
+  $('employeeContestStatus').innerHTML='<b>Connecting to Contest Service…</b><br><span class="muted">Loading the contest catalog.</span>';
+  // Ping runs in parallel as a diagnostic only; it no longer blocks or delays the catalog.
+  const ping=pingBackend().then(()=>null,err=>err);
+  let d;
+  try{d=await jsonpRetry('employeeContestCatalogV65',{},25000)}
+  catch(err){const pingErr=await ping;throw pingErr||err}
+  if(!d||!d.ok)throw new Error(d&&d.error?d.error:'Contest catalog did not return data');
+  catalog={activeContests:d.activeContests||[],upcomingContests:d.upcomingContests||[]};
+  lastCatalogLoad=Date.now();
+  const count=catalog.activeContests.length;
+  $('employeeContestStatus').innerHTML=count?'<b>'+count+' active contest'+(count===1?'':'s')+'</b> available now.':'<b>No active contests.</b>';
+  render();
+}
+
+async function loadMine(force=false){
+  if(!force&&Date.now()-lastMineLoad<60000)return;
+  try{
+    const d=await jsonpRetry('employeeContestMineV65',{},25000);
+    if(!d||!d.ok)throw new Error(d&&d.error?d.error:'Personal contest data did not return');
+    mine={myEntries:d.myEntries||[],progress:d.progress||[],awards:d.awards||[]};
+    lastMineLoad=Date.now();render();
+  }catch(err){
+    console.warn('SEHC personal contest status load failed:',err);
+  }
+}
+
+async function loadAll(force=false){
+  if(loading)return;loading=true;
+  try{
+    await loadCatalog(force);
+    loadMine(force);
+  }catch(err){
+    if($('contestNavBadge'))$('contestNavBadge').textContent='';
+    $('employeeContestStatus').innerHTML='<b>Contest catalog could not be loaded.</b><br>'+esc(err.message||String(err))+'<br><span class="muted">This is isolated to Ad Hoc Contests. Use Refresh Contests to retry.</span>';
+    $('employeeContestList').innerHTML='<div class="card"><p>The Employee Contest Catalog endpoint did not return successfully.</p><button class="btn alt" id="contestRetryInline" type="button">Retry Contest Load</button></div>';
+    setTimeout(()=>$('contestRetryInline')?.addEventListener('click',()=>loadAll(true)),0);
+  }finally{loading=false}
+}
+
 function init(){
   if(started)return;started=true;
-  $('refreshEmployeeContests')?.addEventListener('click',()=>load(true));$('refreshMyContestAwards')?.addEventListener('click',()=>load(true));
-  $('contestEntrySubmit')?.addEventListener('click',submitEntry);$('contestEntryCancel')?.addEventListener('click',()=>$('contestEntryModal').classList.remove('open'));
+  $('refreshEmployeeContests')?.addEventListener('click',()=>loadAll(true));
+  $('refreshMyContestAwards')?.addEventListener('click',()=>loadMine(true));
+  $('contestEntrySubmit')?.addEventListener('click',submitEntry);
+  $('contestEntryCancel')?.addEventListener('click',()=>$('contestEntryModal').classList.remove('open'));
   $('contestEntryModal')?.addEventListener('click',e=>{if(e.target===$('contestEntryModal'))$('contestEntryModal').classList.remove('open')});
-  document.querySelector('[data-tab="contests"]')?.addEventListener('click',()=>load(true));document.querySelector('[data-tab="profile"]')?.addEventListener('click',()=>load(false));document.querySelector('[data-tab="wallet"]')?.addEventListener('click',()=>load(true));
-  load(true);
+  document.querySelector('[data-tab="contests"]')?.addEventListener('click',()=>loadAll(true));
+  document.querySelector('[data-tab="profile"]')?.addEventListener('click',()=>loadMine(false));
+  loadAll(true);
 }
 if(window.SEHC_CURRENT_USER)init();else window.addEventListener('sehc-auth-ready',init,{once:true});
 })();
