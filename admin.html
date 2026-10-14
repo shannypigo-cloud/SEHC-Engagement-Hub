@@ -549,7 +549,7 @@ const sehcDoLogout=function(){const n='logout'+Date.now(),f=document.createEleme
 
   <div class="panel" id="daily-bingo-setup">
 <h2>Daily Bingo Setup</h2>
-<p>Rename Daily Bingo categories, change qualification rules, ticket value, icon, verification method, or activate/deactivate a category. Verification can require an Account / Reference Number or use a Supervisor Report with no account reference. You can keep up to 6 recurring categories.</p>
+<p>Administrators and Supervisors can rename Daily Bingo categories, change qualification rules, ticket value, icon, verification method, or activate/deactivate a category. Verification can require an Account / Reference Number or use a Supervisor Report with no account reference. You can keep up to 6 recurring categories.</p>
 <div id="bingo-config-rows"></div>
 <div style="display:flex;gap:10px;flex-wrap:wrap;margin-top:12px">
 <button id="bingo-config-add" type="button">Add Category</button>
@@ -1006,7 +1006,7 @@ document.querySelectorAll('.overview-link').forEach(card=>{
   card.addEventListener('keydown',e=>{if(e.key==='Enter'||e.key===' '){e.preventDefault();openCard(card)}});
 });
 })();
-</script><script id="sehc-bingo-config-admin-v67">
+</script><script id="sehc-bingo-config-admin-v68">
 (function(){
 const API='https://script.google.com/macros/s/AKfycbwsjW0VFilbJokuaNYWF-vU7JktoEnWsL4TLJ7u4MNH3W4pNv2d3VAhaT24bE3j2gXo/exec';
 let config=[];
@@ -1066,8 +1066,20 @@ document.getElementById('bingo-config-save').onclick=async()=>{
     if(!window.SEHC_API_V60)throw new Error('Admin API client is not ready. Refresh the page and try again.');
     const d=await window.SEHC_API_V60.command('adminSaveBingoConfig',{config:JSON.stringify(next)},25000);
     if(!d||!d.ok)throw new Error(d&&d.error?d.error:'Daily Bingo configuration was not saved');
-    config=d.categories||next;window.SEHC_BINGO_CONFIG=config;window.SEHC_CATEGORY_NAMES=config.filter(x=>x.active).map(x=>x.name);
-    render();status.textContent='Daily Bingo configuration saved and confirmed by the backend.';
+
+    // Read the configuration back from Apps Script before showing success.
+    const verify=await window.SEHC_API_V60.jsonp('bingoConfig',{},12000);
+    if(!verify||!verify.ok)throw new Error(verify&&verify.error?verify.error:'The setup was saved but could not be verified');
+    config=verify.categories||[];
+    const intended=new Map(next.map(x=>[x.id,{mode:x.verificationMode,label:x.verificationLabel}]));
+    const mismatch=config.find(x=>intended.has(x.id)&&(
+      String(x.verificationMode||'')!==String(intended.get(x.id).mode||'') ||
+      String(x.verificationLabel||'')!==String(intended.get(x.id).label||'')
+    ));
+    if(mismatch)throw new Error('The backend did not preserve the verification setting for '+mismatch.name+'. Do not assume this save succeeded.');
+
+    window.SEHC_BINGO_CONFIG=config;window.SEHC_CATEGORY_NAMES=config.filter(x=>x.active).map(x=>x.name);
+    render();status.textContent='Daily Bingo setup saved and verified · '+(d.savedBy||'User')+' ('+(d.savedByRole||'Authorized')+').';
     window.dispatchEvent(new CustomEvent('sehc-bingo-config',{detail:config}));
     if(window.SEHC_ADMIN_REFRESH)window.SEHC_ADMIN_REFRESH();
   }catch(err){status.textContent='NOT SAVED: '+(err.message||String(err))}
