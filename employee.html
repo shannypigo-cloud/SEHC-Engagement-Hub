@@ -201,7 +201,14 @@ header nav{flex:0 0 auto}.sehc-sidebar-session{margin-top:auto;padding:14px 8px 
 .contest-award-row{display:grid;grid-template-columns:1.3fr .8fr 1.4fr;gap:10px;padding:11px 0;border-top:1px solid #dce9ed}.contest-award-row:first-child{border-top:0}
 @media(max-width:700px){.contest-award-row{grid-template-columns:1fr}}
 </style>
-</head><body>
+
+<style id="sehc-contest-engine-v61-employee-style">
+.contest-entry-modal{position:fixed;inset:0;background:rgba(5,31,43,.55);display:none;align-items:center;justify-content:center;padding:20px;z-index:99999}.contest-entry-modal.open{display:flex}
+.contest-entry-dialog{width:min(620px,96vw);background:#fff;border-radius:18px;padding:24px;box-shadow:0 25px 70px #0005}.contest-entry-dialog label{display:block;font-weight:800;margin-top:12px}.contest-entry-dialog input,.contest-entry-dialog textarea{width:100%;margin-top:5px}
+.contest-method{font-size:11px;font-weight:900;letter-spacing:.3px;color:#5c4a83;background:#f0ecfb;border-radius:999px;padding:5px 9px;display:inline-flex}
+.contest-action{margin-top:12px}.contest-progressbar{height:8px;background:#e5eef1;border-radius:999px;overflow:hidden;margin-top:7px}.contest-progressbar i{display:block;height:100%;background:#1592ad}
+.contest-state{margin-top:8px;font-size:12px;font-weight:800}.contest-state.pending{color:#8b6200}.contest-state.approved{color:#17683d}.contest-state.rejected{color:#9f3030}
+</style></head><body>
 <style id="sehc-auth-ui">
 #sehcAuthGate{position:fixed;inset:0;z-index:99999;background:#eef8fb;display:flex;align-items:center;justify-content:center;font-family:Segoe UI,Arial;color:#00475c}
 #sehcAuthGate .box{background:white;border:1px solid #d9e9ee;border-radius:16px;padding:24px 30px;box-shadow:0 12px 40px #00475c22;text-align:center}
@@ -242,10 +249,17 @@ const sehcDoLogout=function(){const n='logout'+Date.now(),f=document.createEleme
 <div id="activeContestHomeList"></div>
 </div><div class="card"><h2>Rewards spotlight</h2><p>☕ Coffee · 🍱 Team Lunch · 🕒 Shift Flex · 🌴 PTO</p><button class="btn alt" onclick="tab('wallet')">Browse Rewards</button></div></div></section>
 <section class="section" id="contests">
-<div class="row" style="align-items:center"><div><h2>Ad Hoc Contests</h2><p class="muted">Special Operations incentives with a defined start date, end date, and reward.</p></div><button class="btn alt" id="refreshEmployeeContests" type="button">Refresh Contests</button></div>
-<div class="card" id="contestStatusCard"><div id="employeeContestStatus" class="note">Loading active contests…</div></div>
+<div class="row" style="align-items:center"><div><h2>Ad Hoc Contests</h2><p class="muted">Special Operations incentives with clearly defined participation methods and rewards.</p></div><button class="btn alt" id="refreshEmployeeContests" type="button">Refresh Contests</button></div>
+<div class="card"><div id="employeeContestStatus" class="note">Loading active contests…</div></div>
 <div id="employeeContestList" class="grid"></div>
-<div class="card"><h2>How contest rewards work</h2><p>Meet the contest requirements published by Operations. Once a Supervisor or Administrator verifies the result, they record the award. Wallet Points appear in your wallet and Raffle Tickets become Grand Draw chances for the day they are awarded.</p></div>
+<div class="card">
+  <h2>Participation Methods</h2>
+  <div class="grid">
+    <div><b>Employee Submission</b><p class="muted">Submit the requested reference, value, or note for supervisor review.</p></div>
+    <div><b>Supervisor Tracked</b><p class="muted">No submission required. Operations updates your progress from internal reports.</p></div>
+    <div><b>Claim + Verification</b><p class="muted">Submit a claim and Operations verifies the final result before awarding the reward.</p></div>
+  </div>
+</div>
 </section>
 <section class="section" id="bingo">
 <div class="row" style="align-items:center;gap:10px;flex-wrap:wrap">
@@ -766,34 +780,100 @@ window.SEHC_API_V60={jsonp,command,token,API};
 })();
 </script>
 
-<script id="sehc-employee-contests-v60">
+
+
+<div class="contest-entry-modal" id="contestEntryModal">
+  <div class="contest-entry-dialog">
+    <h2 id="contestEntryTitle">Submit Contest Entry</h2>
+    <p id="contestEntryDescription" class="muted"></p>
+    <input id="contestEntryContestID" type="hidden">
+    <label id="contestReferenceWrap">Account / Reference Number<input id="contestEntryReference" maxlength="80" placeholder="Internal reference only"></label>
+    <label id="contestMetricWrap">Numeric Value<input id="contestEntryMetric" type="number" step="0.01" placeholder="Enter qualifying value"></label>
+    <label id="contestNoteWrap">Employee Note<textarea id="contestEntryNote" maxlength="300" rows="3" placeholder="Optional context"></textarea></label>
+    <div class="notice" style="margin-top:10px">Do not enter patient names, DOB, card/payment details, or other patient information.</div>
+    <p id="contestEntrySubmitStatus" role="status"></p>
+    <div style="display:flex;gap:10px;flex-wrap:wrap;margin-top:12px"><button class="btn" id="contestEntrySubmit" type="button">Submit for Review</button><button class="btn alt" id="contestEntryCancel" type="button">Cancel</button></div>
+  </div>
+</div>
+
+<script id="sehc-employee-contests-v61">
 (function(){
-const $=id=>document.getElementById(id);let cache=null,busy=false,lastLoad=0,started=false;
+const $=id=>document.getElementById(id);let data=null,busy=false,started=false,currentContest=null,lastLoad=0;
 function esc(s){return String(s??'').replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]))}
 function fmtDate(s){if(!s)return '—';const m=String(s).slice(0,10).match(/^(\d{4})-(\d{2})-(\d{2})$/);if(!m)return esc(s);return new Intl.DateTimeFormat('en-US',{month:'short',day:'numeric',year:'numeric'}).format(new Date(+m[1],+m[2]-1,+m[3]))}
-function rewards(c){const a=[];if(Number(c.walletPoints)>0)a.push('<span class="contest-chip">'+Number(c.walletPoints).toLocaleString()+' Wallet Points</span>');if(Number(c.raffleTickets)>0)a.push('<span class="contest-chip ticket">'+Number(c.raffleTickets)+' Raffle Ticket'+(Number(c.raffleTickets)===1?'':'s')+'</span>');return a.join('')}
-function render(data){
-  cache=data;const active=data.activeContests||[],upcoming=data.upcomingContests||[],awards=data.awards||[];
-  if($('contestNavBadge'))$('contestNavBadge').textContent=active.length?String(active.length):'';
-  if($('employeeContestStatus'))$('employeeContestStatus').innerHTML=active.length?'<b>'+active.length+' active contest'+(active.length===1?'':'s')+'</b> available now.':'No active Ad Hoc Contests right now.';
-  if($('employeeContestList'))$('employeeContestList').innerHTML=(active.concat(upcoming)).length?(active.concat(upcoming)).map(c=>'<div class="contest-card"><div class="contest-title">'+esc(c.name)+'</div><div>'+esc(c.target||'Follow the published contest criteria.')+'</div><div class="contest-rewards">'+rewards(c)+' <span class="contest-chip '+(c.status==='active'?'active':'')+'">'+esc(c.status)+'</span></div><div class="contest-meta">'+fmtDate(c.start)+' → '+fmtDate(c.end)+'</div></div>').join(''):'<div class="card"><p>No active or upcoming contests.</p></div>';
-  const home=$('activeContestHomeCard');if(home){home.style.display=active.length?'block':'none';$('activeContestHomeText').textContent=active.length===1?'1 special incentive is active now.':active.length+' special incentives are active now.';$('activeContestHomeList').innerHTML=active.slice(0,3).map(c=>'<div class="contest-home-item"><b>'+esc(c.name)+'</b><div class="muted">'+esc(c.target||'')+' · '+fmtDate(c.end)+' · '+rewards(c)+'</div></div>').join('')}
-  if($('myContestAwards'))$('myContestAwards').innerHTML=awards.length?awards.map(a=>'<div class="contest-award-row"><div><b>'+esc(a.contestName)+'</b><div class="muted">'+esc(a.note||'Award recorded by Operations')+'</div></div><div>'+(a.walletPoints?'<b>+'+Number(a.walletPoints).toLocaleString()+' pts</b>':'')+(a.walletPoints&&a.raffleTickets?'<br>':'')+(a.raffleTickets?'<b>+'+a.raffleTickets+' ticket'+(a.raffleTickets===1?'':'s')+'</b>':'')+'</div><div class="muted">'+esc(a.awardedAt||'')+'<br>'+esc(a.awardedBy||'')+'</div></div>').join(''):'<p>No contest awards have been recorded yet.</p>';
+function methodLabel(m){return m==='employee_submission'?'Employee Submission':m==='supervisor_tracked'?'Tracked by Operations':'Claim + Supervisor Verification'}
+function rewardHtml(c){const a=[];if(Number(c.walletPoints)>0)a.push('<span class="contest-chip">'+Number(c.walletPoints).toLocaleString()+' Wallet Points</span>');if(Number(c.raffleTickets)>0)a.push('<span class="contest-chip ticket">'+Number(c.raffleTickets)+' Raffle Ticket'+(Number(c.raffleTickets)===1?'':'s')+'</span>');if(c.directReward)a.push('<span class="contest-chip ticket">'+esc(c.directReward)+'</span>');return a.join('')}
+function latestEntry(contestID){return (data.myEntries||[]).filter(e=>e.contestID===contestID).sort((a,b)=>String(b.submittedAt).localeCompare(String(a.submittedAt)))[0]}
+function progressFor(contestID){return (data.progress||[]).find(p=>p.contestID===contestID)}
+function render(){
+  const active=data.activeContests||[],upcoming=data.upcomingContests||[];
+  $('contestNavBadge').textContent=active.length?String(active.length):'';
+  $('employeeContestStatus').innerHTML=active.length?'<b>'+active.length+' active contest'+(active.length===1?'':'s')+'</b> available now.':'No active Ad Hoc Contests right now.';
+  const all=active.concat(upcoming);
+  $('employeeContestList').innerHTML=all.length?all.map(c=>{
+    const entry=latestEntry(c.id),progress=progressFor(c.id),canSubmit=c.status==='active'&&c.participationMethod!=='supervisor_tracked';
+    let action='';
+    if(c.participationMethod==='supervisor_tracked'){
+      if(progress){
+        const pct=c.goalValue>0?Math.min(100,Math.max(0,(progress.metricValue/c.goalValue)*100)):0;
+        action='<div class="contest-state">'+esc(c.metricName||'Progress')+': <b>'+esc(progress.metricValue)+' '+esc(c.unit||'')+'</b>'+(c.goalValue?' / '+esc(c.goalValue)+' '+esc(c.unit||''):'')+'</div>'+(c.goalValue?'<div class="contest-progressbar"><i style="width:'+pct+'%"></i></div>':'');
+      }else action='<div class="contest-state">Tracked by Operations · No employee submission required.</div>';
+    }else if(entry){
+      action='<div class="contest-state '+esc(entry.status)+'">Latest submission: '+esc(entry.status==='pending'?'Pending Supervisor Review':entry.status==='approved'?'Approved':'Rejected')+'</div>';
+      if(entry.status==='rejected'&&canSubmit)action+='<button class="btn alt contest-action contest-submit" data-id="'+esc(c.id)+'">Submit Again</button>';
+    }else if(canSubmit){
+      action='<button class="btn contest-action contest-submit" data-id="'+esc(c.id)+'">'+(c.participationMethod==='hybrid'?'Claim Entry':'Submit Entry')+'</button>';
+    }
+    return '<div class="contest-card"><span class="contest-method">'+esc(methodLabel(c.participationMethod))+'</span><div class="contest-title" style="margin-top:10px">'+esc(c.name)+'</div><div>'+esc(c.target||'Follow the published contest criteria.')+'</div><div class="contest-rewards">'+rewardHtml(c)+' <span class="contest-chip '+(c.status==='active'?'active':'')+'">'+esc(c.status)+'</span></div>'+(c.metricName?'<div class="contest-meta">'+esc(c.metricName)+(c.goalValue?' · Goal: '+esc(c.goalValue)+' '+esc(c.unit||''):'')+'</div>':'')+'<div class="contest-meta">'+fmtDate(c.start)+' → '+fmtDate(c.end)+'</div>'+action+'</div>';
+  }).join(''):'<div class="card"><p>No active or upcoming contests.</p></div>';
+  document.querySelectorAll('.contest-submit').forEach(b=>b.onclick=()=>openEntry(b.dataset.id));
+
+  const home=$('activeContestHomeCard');if(home){home.style.display=active.length?'block':'none';$('activeContestHomeText').textContent=active.length===1?'1 special incentive is active now.':active.length+' special incentives are active now.';$('activeContestHomeList').innerHTML=active.slice(0,3).map(c=>'<div class="contest-home-item"><b>'+esc(c.name)+'</b><div class="muted">'+esc(methodLabel(c.participationMethod))+' · '+fmtDate(c.end)+' · '+rewardHtml(c)+'</div></div>').join('')}
+  if($('myContestAwards'))$('myContestAwards').innerHTML=(data.awards||[]).length?(data.awards||[]).map(a=>'<div class="contest-award-row"><div><b>'+esc(a.contestName)+'</b><div class="muted">'+esc(a.note||'Award recorded by Operations')+'</div></div><div>'+(a.walletPoints?'<b>+'+Number(a.walletPoints).toLocaleString()+' pts</b>':'')+(a.walletPoints&&(a.raffleTickets||a.directReward)?'<br>':'')+(a.raffleTickets?'<b>+'+a.raffleTickets+' ticket'+(a.raffleTickets===1?'':'s')+'</b>':'')+((a.raffleTickets&&a.directReward)?'<br>':'')+(a.directReward?'<b>'+esc(a.directReward)+'</b>':'')+'</div><div class="muted">'+esc(a.fulfillmentStatus||'')+'<br>'+esc(a.awardedAt||'')+'<br>'+esc(a.awardedBy||'')+'</div></div>').join(''):'<p>No contest awards have been recorded yet.</p>';
+  renderWallet();
+}
+function renderWallet(){
+  if(!data||!data.wallet)return;const w=data.wallet;
+  if($('walletBalance'))$('walletBalance').textContent=Number(w.balance||0).toLocaleString();
+  if($('walletEarned'))$('walletEarned').textContent=Number(w.lifetimeEarned||0).toLocaleString();
+  if($('mwallet'))$('mwallet').textContent=Number(w.balance||0).toLocaleString();
+  if($('ledger'))$('ledger').innerHTML=(w.transactions||[]).length?w.transactions.map(x=>'<div class="item"><span>'+esc(x.reason)+'</span><b>'+((x.delta>0)?'+':'')+Number(x.delta).toLocaleString()+' pts</b></div>').join(''):'<p>No approved wallet transactions yet.</p>';
+}
+function openEntry(id){
+  const c=(data.activeContests||[]).find(x=>x.id===id);if(!c)return;currentContest=c;
+  $('contestEntryContestID').value=c.id;$('contestEntryTitle').textContent=c.participationMethod==='hybrid'?'Claim Contest Entry':'Submit Contest Entry';$('contestEntryDescription').textContent=c.name+' · '+c.target;
+  $('contestEntryReference').value='';$('contestEntryMetric').value='';$('contestEntryNote').value='';$('contestEntrySubmitStatus').textContent='';
+  $('contestReferenceWrap').style.display=['reference','reference_number'].includes(c.submissionType)?'block':'none';
+  $('contestMetricWrap').style.display=['number','reference_number'].includes(c.submissionType)?'block':'none';
+  $('contestNoteWrap').style.display=c.submissionType==='note'||c.participationMethod==='hybrid'?'block':'block';
+  $('contestEntryModal').classList.add('open');
+}
+async function submitEntry(){
+  if(!currentContest||busy)return;
+  busy=true;$('contestEntrySubmit').disabled=true;$('contestEntrySubmit').textContent='Submitting…';$('contestEntrySubmitStatus').textContent='Sending entry to Operations…';
+  try{
+    const d=await window.SEHC_API_V60.command('contestSubmitEntry',{contestID:currentContest.id,referenceNumber:$('contestEntryReference').value.trim(),metricValue:$('contestEntryMetric').value,employeeNote:$('contestEntryNote').value.trim()},25000);
+    if(!d||!d.ok)throw new Error(d&&d.error?d.error:'Entry was not submitted');
+    $('contestEntrySubmitStatus').textContent='Submitted successfully · Pending Supervisor Review';
+    setTimeout(()=>{$('contestEntryModal').classList.remove('open')},700);await load(true);
+  }catch(err){$('contestEntrySubmitStatus').textContent='NOT SUBMITTED: '+(err.message||String(err))}
+  finally{busy=false;$('contestEntrySubmit').disabled=false;$('contestEntrySubmit').textContent='Submit for Review'}
 }
 async function load(force=false){
-  if(busy)return;if(!force&&cache&&Date.now()-lastLoad<60000){render(cache);return}
-  busy=true;if($('employeeContestStatus'))$('employeeContestStatus').textContent='Loading contests from Operations…';
+  if(busy)return;if(!force&&data&&Date.now()-lastLoad<60000){render();return}
+  busy=true;$('employeeContestStatus').textContent='Loading contests from Operations…';
   try{
-    const d=await window.SEHC_API_V60.jsonp('employeeContestsV60',{},9000);
-    if(!d||!d.ok)throw new Error(d&&d.error?d.error:'Unable to load contests');
-    lastLoad=Date.now();render(d);
-  }catch(err){if($('employeeContestStatus'))$('employeeContestStatus').textContent='Contests could not be loaded: '+(err.message||String(err))}
+    const d=await window.SEHC_API_V60.jsonp('employeeContestsV61',{},10000);if(!d||!d.ok)throw new Error(d&&d.error?d.error:'Unable to load contests');
+    data=d;lastLoad=Date.now();render();
+  }catch(err){$('employeeContestStatus').textContent='Contests could not be loaded: '+(err.message||String(err))}
   finally{busy=false}
 }
 function init(){
   if(started)return;started=true;
   $('refreshEmployeeContests')?.addEventListener('click',()=>load(true));$('refreshMyContestAwards')?.addEventListener('click',()=>load(true));
-  document.querySelector('[data-tab="contests"]')?.addEventListener('click',()=>load(true));document.querySelector('[data-tab="profile"]')?.addEventListener('click',()=>load(false));
+  $('contestEntrySubmit')?.addEventListener('click',submitEntry);$('contestEntryCancel')?.addEventListener('click',()=>$('contestEntryModal').classList.remove('open'));
+  $('contestEntryModal')?.addEventListener('click',e=>{if(e.target===$('contestEntryModal'))$('contestEntryModal').classList.remove('open')});
+  document.querySelector('[data-tab="contests"]')?.addEventListener('click',()=>load(true));document.querySelector('[data-tab="profile"]')?.addEventListener('click',()=>load(false));document.querySelector('[data-tab="wallet"]')?.addEventListener('click',()=>load(true));
   load(true);
 }
 if(window.SEHC_CURRENT_USER)init();else window.addEventListener('sehc-auth-ready',init,{once:true});
