@@ -367,7 +367,7 @@ const sehcDoLogout=function(){const n='logout'+Date.now(),f=document.createEleme
     <label>Start Date<input id="contestStart" type="date"></label>
     <label>Expiration Date<input id="contestEnd" type="date" required></label>
   </div>
-  <button id="createContestBtn" type="button">Publish Contest</button>
+  <input id="contestEditingID" type="hidden"><button id="createContestBtn" type="button">Publish Contest</button> <button id="cancelContestEdit" class="alt" type="button" style="display:none">Cancel Edit</button>
   <p id="contestCreateStatus" role="status"></p>
 </div>
 
@@ -1272,7 +1272,7 @@ else window.addEventListener('sehc-auth-ready',init,{once:true});
 (function(){
 const $=id=>document.getElementById(id);let snapshot={contests:[],pendingEntries:[],recentEntries:[],progress:[]},users=[],busy=false,started=false;
 function esc(s){return String(s??'').replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]))}
-function methodLabel(m){return m==='employee_submission'?'Employee Submission':m==='supervisor_tracked'?'Supervisor Tracked':'Employee Claim + Supervisor Verification'}
+function methodLabel(m){return m==='employee_submission'?'Employee Submission':m==='supervisor_tracked'?'Supervisor Tracked':m==='hybrid'?'Employee Claim + Supervisor Verification':'Setup Required'}
 function rewardText(c){const a=[];if(Number(c.walletPoints)>0)a.push(Number(c.walletPoints).toLocaleString()+' Wallet Points');if(Number(c.raffleTickets)>0)a.push(Number(c.raffleTickets)+' Raffle Ticket'+(Number(c.raffleTickets)===1?'':'s'));if(c.directReward)a.push(c.directReward);return a.join(' + ')||'No reward'}
 function renderBuilder(){
   const m=$('contestMethod').value;
@@ -1290,7 +1290,7 @@ function render(){
   const contests=snapshot.contests||[],pending=snapshot.pendingEntries||[],progress=snapshot.progress||[];
   const active=contests.filter(c=>c.status==='active'),tracked=active.filter(c=>c.participationMethod==='supervisor_tracked');
   $('contestSummaryCards').innerHTML='<div class="stat"><strong>'+active.length+'</strong><small>Active Contests</small></div><div class="stat"><strong>'+pending.length+'</strong><small>Pending Employee Reviews</small></div><div class="stat"><strong>'+tracked.length+'</strong><small>Supervisor Tracked</small></div>';
-  $('contestsList').innerHTML=contests.length?contests.map(c=>'<div class="contest-op-card"><b>'+esc(c.name)+'</b><div class="muted">'+esc(c.target||'No description')+' · '+esc(c.start)+' → '+esc(c.end)+'</div><div class="tags"><span class="contest-op-tag method">'+esc(methodLabel(c.participationMethod))+'</span><span class="contest-op-tag">'+esc(c.status)+'</span><span class="contest-op-tag reward">'+esc(rewardText(c))+'</span>'+(c.metricName?'<span class="contest-op-tag">'+esc(c.metricName)+(c.goalValue?' · Goal '+esc(c.goalValue)+' '+esc(c.unit||''):'')+'</span>':'')+'</div></div>').join(''):'<p>No contests created yet.</p>';
+  $('contestsList').innerHTML=contests.length?contests.map(c=>'<div class="contest-op-card"><div style="display:flex;justify-content:space-between;gap:10px;align-items:flex-start"><div><b>'+esc(c.name)+'</b><div class="muted">'+esc(c.target||'No description')+' · '+esc(c.start)+' → '+esc(c.end)+'</div></div><button class="alt edit-contest" data-id="'+esc(c.id)+'" type="button">Edit Setup</button></div><div class="tags"><span class="contest-op-tag method">'+esc(methodLabel(c.participationMethod))+'</span><span class="contest-op-tag">'+esc(c.status)+'</span><span class="contest-op-tag reward">'+esc(rewardText(c))+'</span>'+(c.metricName?'<span class="contest-op-tag">'+esc(c.metricName)+(c.goalValue?' · Goal '+esc(c.goalValue)+' '+esc(c.unit||''):'')+'</span>':'')+(c.participationMethod==='setup_required'?'<span class="contest-op-tag" style="background:#fff0f0;color:#9f3030">Employee action is disabled until setup is completed</span>':'')+'</div></div>').join(''):'<p>No contests created yet.</p>';document.querySelectorAll('.edit-contest').forEach(b=>b.onclick=()=>editContest(b.dataset.id));
   $('contestPendingEntries').innerHTML=pending.length?pending.map(e=>{
     const c=contests.find(x=>x.id===e.contestID)||{};
     return '<div class="contest-review-row"><div><b>'+esc(e.employeeName)+'</b><div class="muted">'+esc(e.contestName)+' · '+esc(methodLabel(e.entryMethod))+'</div></div><div>'+(e.referenceNumber?'<b>Ref:</b> '+esc(e.referenceNumber)+'<br>':'')+(e.metricValue!=null?'<b>Value:</b> '+esc(e.metricValue)+' '+esc(c.unit||''):'')+'</div><div>'+esc(e.employeeNote||'No employee note')+'</div><div><input id="verify-'+esc(e.entryID)+'" type="number" step="0.01" placeholder="Verified value" style="max-width:125px;margin-bottom:5px"><br><button class="review-approve" data-id="'+esc(e.entryID)+'">Approve</button> <button class="alt review-reject" data-id="'+esc(e.entryID)+'">Reject</button></div></div>';
@@ -1316,6 +1316,22 @@ async function load(){
   }catch(err){$('contestCreateStatus').textContent='Contest engine could not load: '+(err.message||String(err))}
   finally{busy=false}
 }
+
+function resetContestForm(){
+  $('contestEditingID').value='';$('contestName').value='';$('contestTarget').value='';$('contestMethod').value='employee_submission';$('contestSubmissionType').value='reference';
+  $('contestMetricName').value='';$('contestGoalValue').value='';$('contestUnit').value='';$('contestWalletPoints').value='0';$('contestRaffleTickets').value='0';$('contestDirectReward').value='';
+  $('createContestBtn').textContent='Publish Contest';$('cancelContestEdit').style.display='none';renderBuilder();
+}
+function editContest(id){
+  const c=(snapshot.contests||[]).find(x=>x.id===id);if(!c)return;
+  $('contestEditingID').value=c.id;$('contestName').value=c.name||'';$('contestTarget').value=c.target||'';
+  $('contestMethod').value=['employee_submission','supervisor_tracked','hybrid'].includes(c.participationMethod)?c.participationMethod:'employee_submission';
+  $('contestSubmissionType').value=c.submissionType||'reference';$('contestMetricName').value=c.metricName||'';$('contestGoalValue').value=c.goalValue||'';$('contestUnit').value=c.unit||'';
+  $('contestWalletPoints').value=c.walletPoints||0;$('contestRaffleTickets').value=c.raffleTickets||0;$('contestDirectReward').value=c.directReward||'';
+  $('contestStart').value=c.start||'';$('contestEnd').value=c.end||'';$('createContestBtn').textContent='Save Contest Setup';$('cancelContestEdit').style.display='inline-block';renderBuilder();
+  $('contestCreateStatus').textContent=c.participationMethod==='setup_required'?'This contest was created before Participation Method was stored. Choose the correct method and save.':'Editing existing contest configuration.';
+  window.scrollTo({top:0,behavior:'smooth'});
+}
 async function create(){
   if(busy)return;
   const fields={
@@ -1329,10 +1345,12 @@ async function create(){
   if(Number(fields.walletPoints||0)<1&&Number(fields.raffleTickets||0)<1&&!fields.directReward)return alert('Configure at least one reward.');
   busy=true;$('createContestBtn').disabled=true;$('createContestBtn').textContent='Publishing…';$('contestCreateStatus').textContent='Publishing contest rules and rewards…';
   try{
-    const d=await window.SEHC_API_V60.command('adminCreateContest',fields,25000);if(!d||!d.ok)throw new Error(d&&d.error?d.error:'Contest was not created');
-    $('contestCreateStatus').textContent='Contest published successfully and is available to the appropriate employee workflow.';
-    ['contestName','contestTarget','contestMetricName','contestGoalValue','contestUnit','contestDirectReward'].forEach(id=>$(id).value='');
-    $('contestWalletPoints').value='0';$('contestRaffleTickets').value='0';await load();
+    const editingID=$('contestEditingID').value;
+    const action=editingID?'adminUpdateContest':'adminCreateContest';
+    if(editingID)fields.contestID=editingID;
+    const d=await window.SEHC_API_V60.command(action,fields,25000);if(!d||!d.ok)throw new Error(d&&d.error?d.error:(editingID?'Contest update failed':'Contest was not created'));
+    $('contestCreateStatus').textContent=editingID?'Contest setup updated successfully. Employee action now follows the saved Participation Method.':'Contest published successfully and is available to the appropriate employee workflow.';
+    resetContestForm();await load();
   }catch(err){$('contestCreateStatus').textContent='Contest was NOT published: '+(err.message||String(err))}
   finally{busy=false;$('createContestBtn').disabled=false;$('createContestBtn').textContent='Publish Contest'}
 }
@@ -1367,7 +1385,7 @@ async function manualAward(){
 function init(){
   if(started)return;started=true;
   $('contestMethod').addEventListener('change',renderBuilder);renderBuilder();
-  $('createContestBtn').addEventListener('click',create);$('refreshContestReviews').addEventListener('click',load);
+  $('createContestBtn').addEventListener('click',create);$('cancelContestEdit').addEventListener('click',()=>{resetContestForm();$('contestCreateStatus').textContent='Edit cancelled.'});$('refreshContestReviews').addEventListener('click',load);
   $('saveProgressBtn').addEventListener('click',()=>updateProgress(false));$('awardProgressBtn').addEventListener('click',()=>updateProgress(true));
   $('awardContestBtn').addEventListener('click',manualAward);
   $('awardContest').addEventListener('change',()=>{const c=(snapshot.contests||[]).find(x=>x.id===$('awardContest').value);if(c){$('awardWalletPoints').value=c.walletPoints||0;$('awardRaffleTickets').value=c.raffleTickets||0;$('awardDirectReward').value=c.directReward||''}});
