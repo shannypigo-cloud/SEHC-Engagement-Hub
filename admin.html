@@ -251,6 +251,25 @@ header nav{flex:0 0 auto}.sehc-sidebar-session{margin-top:auto;padding:14px 8px 
 .elig-row:first-child{border-top:1px solid #dbe8ed}.elig-head{font-size:11px;font-weight:900;color:#527080;background:#f6fafb}
 @media(max-width:900px){.elig-row{grid-template-columns:1fr 1fr}.elig-head{display:none}}
 </style>
+
+<style id="sehc-user-create-v57-style">
+.um-operation-status{display:none;margin-top:12px;padding:12px 14px;border:1px solid #b9d9e3;border-radius:12px;background:#eef8fb;color:#174e61;font-weight:700}
+.um-operation-status.is-visible{display:flex;align-items:center;gap:10px}
+.um-spinner{width:18px;height:18px;border:3px solid #c8e5ec;border-top-color:#0785a8;border-radius:50%;animation:umspin .8s linear infinite;flex:0 0 auto}
+@keyframes umspin{to{transform:rotate(360deg)}}
+.um-modal-backdrop{position:fixed;inset:0;background:rgba(4,31,43,.52);display:none;align-items:center;justify-content:center;padding:20px;z-index:99999}
+.um-modal-backdrop.open{display:flex}
+.um-modal{width:min(620px,96vw);max-height:90vh;overflow:auto;background:#fff;border-radius:18px;box-shadow:0 26px 70px rgba(0,0,0,.3);padding:24px}
+.um-modal h2{margin:0 0 6px;color:#064b63}.um-modal p{color:#5d7883}
+.um-cred-grid{display:grid;grid-template-columns:150px 1fr;gap:8px 12px;margin:18px 0}
+.um-cred-grid dt{font-weight:800;color:#486978}.um-cred-grid dd{margin:0;overflow-wrap:anywhere}
+.um-password-box{font-family:ui-monospace,SFMono-Regular,Consolas,monospace;font-size:18px;font-weight:800;letter-spacing:.3px;background:#f1f8fa;border:1px solid #b9d9e3;border-radius:10px;padding:12px}
+.um-modal-actions{display:flex;gap:10px;flex-wrap:wrap;margin-top:18px}
+.um-modal-actions button{min-width:150px}
+.um-warning{background:#fff7e4;border:1px solid #efcf82;border-radius:10px;padding:10px 12px;color:#805700;font-size:13px}
+.um-copy-ok{font-size:12px;color:#0a7650;font-weight:800;min-height:18px;margin-top:6px}
+@media(max-width:600px){.um-cred-grid{grid-template-columns:1fr}.um-modal-actions button{width:100%}}
+</style>
 </head><body>
 <style id="sehc-auth-ui">
 #sehcAuthGate{position:fixed;inset:0;z-index:99999;background:#eef8fb;display:flex;align-items:center;justify-content:center;font-family:Segoe UI,Arial;color:#00475c}
@@ -474,7 +493,9 @@ const sehcDoLogout=function(){const n='logout'+Date.now(),f=document.createEleme
   <div id="eligRoster" style="margin-top:16px"></div>
 </div>
 </section>
-<section class="hidden" id="users"><h1>User Management</h1><div class="panel" id="userCreatePanel"><h2>Create Account</h2><p>Administrators create new Engagement Hub accounts. Employee ID is generated automatically based on role. New users receive a temporary password and must change it on first sign-in.</p><div class="sehc-user-grid"><label>Employee ID<input id="umEmployeeID" value="Generated automatically" readonly aria-readonly="true"></label><label>Full Name<input id="umFullName" placeholder="Employee name"></label><label>Username<input id="umUsername" placeholder="first.last"></label><label>Email<input id="umEmail" placeholder="name@gulfrcm.com"></label><label>Role<select id="umRole"><option>Employee</option><option>Supervisor</option><option>Administrator</option></select></label><label>Team<input id="umTeam" placeholder="EBO Team A"></label></div><button id="umCreate" type="button">Create Account</button><div id="umCreateResult" class="notice" style="display:none;margin-top:12px"></div></div><div class="panel"><div class="row"><h2>Accounts</h2><button id="umRefresh" type="button">Refresh Users</button></div><p id="umStatus">Loading accounts…</p><div id="umUsers"></div></div></section><section class="hidden" id="reports"><h1>Reporting &amp; Audit</h1><div class="sehc-report-filters" id="sehc-report-filters"><h2>Report Date Range &amp; Contest History</h2><p>Choose a report, date range, or specific contest. Preview matching records before exporting.</p><div class="sehc-report-filter-grid"><div><label for="rf-type">Report Type</label><select id="rf-type"><option value="contests">Previous Contests</option><option value="bingo">Daily Bingo &amp; Category Results</option><option value="winners">Grand Draw Winners</option><option value="wallet">Wallet &amp; Redemptions</option></select></div><div><label for="rf-start">From Date</label><input id="rf-start" type="date"/></div><div><label for="rf-end">To Date</label><input id="rf-end" type="date"/></div><div><label for="rf-contest">Specific Contest</label><select id="rf-contest"><option value="">All Contests</option></select></div></div><div class="sehc-report-filter-actions"><button id="rf-apply" type="button">Apply Filters</button><button class="secondary" id="rf-clear" type="button">Clear Filters</button><button id="rf-csv" type="button">Download Filtered CSV</button><button id="rf-excel" type="button">Download Filtered Excel</button></div><div class="sehc-report-summary" id="rf-summary" role="status"></div><div class="sehc-report-preview" id="rf-preview"></div><p style="font-size:12px;color:#496777">Dates are inclusive. Records without a recognizable date cannot be matched when a date filter is active. All data is local to this browser until the Google Sheets backend is connected.</p></div><div class="panel"><h2>Download Reports</h2><p>Export the current prototype records as Excel-compatible CSV files or an Excel workbook. The reports reflect only data available in this browser.</p><div class="report-grid">
+<section class="hidden" id="users"><h1>User Management</h1><div class="panel" id="userCreatePanel"><h2>Create Account</h2><p>Administrators create new Engagement Hub accounts. Employee ID is generated automatically based on role. New users receive a temporary password and must change it on first sign-in.</p><div class="sehc-user-grid"><label>Employee ID<input id="umEmployeeID" value="Generated automatically" readonly aria-readonly="true"></label><label>Full Name<input id="umFullName" placeholder="Employee name"></label><label>Username<input id="umUsername" placeholder="first.last"></label><label>Email<input id="umEmail" placeholder="name@gulfrcm.com"></label><label>Role<select id="umRole"><option>Employee</option><option>Supervisor</option><option>Administrator</option></select></label><label>Team<input id="umTeam" placeholder="EBO Team A"></label></div><button id="umCreate" type="button">Create Account</button>
+<div id="umCreateStatus" class="um-operation-status" role="status" aria-live="polite"><span class="um-spinner" aria-hidden="true"></span><span id="umCreateStatusText">Working…</span></div>
+<div id="umCreateResult" class="notice" style="display:none;margin-top:12px"></div></div><div class="panel"><div class="row"><h2>Accounts</h2><button id="umRefresh" type="button">Refresh Users</button></div><p id="umStatus">Loading accounts…</p><div id="umUsers"></div></div></section><section class="hidden" id="reports"><h1>Reporting &amp; Audit</h1><div class="sehc-report-filters" id="sehc-report-filters"><h2>Report Date Range &amp; Contest History</h2><p>Choose a report, date range, or specific contest. Preview matching records before exporting.</p><div class="sehc-report-filter-grid"><div><label for="rf-type">Report Type</label><select id="rf-type"><option value="contests">Previous Contests</option><option value="bingo">Daily Bingo &amp; Category Results</option><option value="winners">Grand Draw Winners</option><option value="wallet">Wallet &amp; Redemptions</option></select></div><div><label for="rf-start">From Date</label><input id="rf-start" type="date"/></div><div><label for="rf-end">To Date</label><input id="rf-end" type="date"/></div><div><label for="rf-contest">Specific Contest</label><select id="rf-contest"><option value="">All Contests</option></select></div></div><div class="sehc-report-filter-actions"><button id="rf-apply" type="button">Apply Filters</button><button class="secondary" id="rf-clear" type="button">Clear Filters</button><button id="rf-csv" type="button">Download Filtered CSV</button><button id="rf-excel" type="button">Download Filtered Excel</button></div><div class="sehc-report-summary" id="rf-summary" role="status"></div><div class="sehc-report-preview" id="rf-preview"></div><p style="font-size:12px;color:#496777">Dates are inclusive. Records without a recognizable date cannot be matched when a date filter is active. All data is local to this browser until the Google Sheets backend is connected.</p></div><div class="panel"><h2>Download Reports</h2><p>Export the current prototype records as Excel-compatible CSV files or an Excel workbook. The reports reflect only data available in this browser.</p><div class="report-grid">
 <div class="report-card"><h3>Daily Bingo &amp; Category Results</h3><p>Entry status, categories, approved tickets, and submission dates.</p><button onclick="sehcExportReport('bingo','csv')">Download CSV</button><button onclick="sehcExportReport('bingo','xls')">Download Excel</button></div>
 <div class="report-card"><h3>Grand Draw Winners</h3><p>Past winners, prizes, ticket counts, and payout status.</p><button onclick="sehcExportReport('winners','csv')">Download CSV</button><button onclick="sehcExportReport('winners','xls')">Download Excel</button></div>
 <div class="report-card"><h3>Previous Contests</h3><p>Contest configurations and historical arcade/contest submissions.</p><button onclick="sehcExportReport('contests','csv')">Download CSV</button><button onclick="sehcExportReport('contests','xls')">Download Excel</button></div>
@@ -769,50 +790,176 @@ refresh();setInterval(()=>{
 },POLL)}
 if(document.readyState==='loading')document.addEventListener('DOMContentLoaded',setup);else setup();
 })();
-</script><style id="sehc-user-mgmt-css">.sehc-user-grid{display:grid;grid-template-columns:repeat(3,minmax(180px,1fr));gap:12px;margin:14px 0}.sehc-user-grid label{display:flex;flex-direction:column;gap:5px;font-weight:700}.sehc-user-grid input,.sehc-user-grid select{padding:10px;border:1px solid #bed7df;border-radius:8px}.um-row{display:grid;grid-template-columns:1.4fr .8fr .8fr 1fr auto;gap:10px;align-items:center;border-top:1px solid #dbe9ed;padding:10px 0}.um-row:first-child{border-top:0}.um-meta{font-size:12px;color:#678390}.um-actions{display:flex;gap:6px;flex-wrap:wrap}@media(max-width:900px){.sehc-user-grid{grid-template-columns:1fr 1fr}.um-row{grid-template-columns:1fr}}@media(max-width:600px){.sehc-user-grid{grid-template-columns:1fr}}</style><script id="sehc-user-management-v40">
+</script><style id="sehc-user-mgmt-css">.sehc-user-grid{display:grid;grid-template-columns:repeat(3,minmax(180px,1fr));gap:12px;margin:14px 0}.sehc-user-grid label{display:flex;flex-direction:column;gap:5px;font-weight:700}.sehc-user-grid input,.sehc-user-grid select{padding:10px;border:1px solid #bed7df;border-radius:8px}.um-row{display:grid;grid-template-columns:1.4fr .8fr .8fr 1fr auto;gap:10px;align-items:center;border-top:1px solid #dbe9ed;padding:10px 0}.um-row:first-child{border-top:0}.um-meta{font-size:12px;color:#678390}.um-actions{display:flex;gap:6px;flex-wrap:wrap}@media(max-width:900px){.sehc-user-grid{grid-template-columns:1fr 1fr}.um-row{grid-template-columns:1fr}}@media(max-width:600px){.sehc-user-grid{grid-template-columns:1fr}}</style><script id="sehc-user-management-v57">
 (function(){
-const API="https://script.google.com/macros/s/AKfycbwsjW0VFilbJokuaNYWF-vU7JktoEnWsL4TLJ7u4MNH3W4pNv2d3VAhaT24bE3j2gXo/exec";let viewer=null,users=[];
+const API="https://script.google.com/macros/s/AKfycbwsjW0VFilbJokuaNYWF-vU7JktoEnWsL4TLJ7u4MNH3W4pNv2d3VAhaT24bE3j2gXo/exec";
+let viewer=null,users=[],cmd=null;
+const $=id=>document.getElementById(id);
 function token(){return window.SEHC_AUTH_TOKEN||sessionStorage.getItem('sehc_session_token')||''}
 function rid(){return 'c'+Date.now().toString(36)+Math.random().toString(36).slice(2)+Math.random().toString(36).slice(2)}
-function post(fields,cb){const requestId=rid(),n='cmd'+Date.now(),f=document.createElement('form'),i=document.createElement('iframe');i.name=n;i.style.display='none';document.body.appendChild(i);f.method='POST';f.action=API;f.target=n;f.style.display='none';fields.requestId=requestId;fields.token=token();Object.entries(fields).forEach(([k,v])=>{const x=document.createElement('input');x.type='hidden';x.name=k;x.value=String(v);f.appendChild(x)});document.body.appendChild(f);window.__SEHC_CMD_CB=cb;window.__SEHC_CMD_ID=requestId;f.submit();setTimeout(()=>pollCmd(requestId),500);setTimeout(()=>{f.remove();i.remove()},5000)}
-function pollCmd(id){const s=document.createElement('script');s.src=API+'?action=commandResult&requestId='+encodeURIComponent(id)+'&_='+Date.now();document.head.appendChild(s);setTimeout(()=>s.remove(),2500)}
-window.SEHC_COMMAND_RESULT_RECEIVE=function(d){if(d&&d.pending){setTimeout(()=>pollCmd(window.__SEHC_CMD_ID),650);return}if(window.__SEHC_CMD_CB){const cb=window.__SEHC_CMD_CB;window.__SEHC_CMD_CB=null;cb(d)}};
 function esc(s){return String(s??'').replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]))}
-function load(){document.getElementById('umStatus').textContent='Refreshing users…';const s=document.createElement('script');s.src=API+'?action=adminUsers&format=jsonp&token='+encodeURIComponent(token())+'&_='+Date.now();document.head.appendChild(s);setTimeout(()=>s.remove(),3000)}
-window.SEHC_USERS_RECEIVE=function(d){if(!d||!d.ok){document.getElementById('umStatus').textContent=d&&d.error?d.error:'Unable to load users.';return}viewer=d.viewer;users=d.users||[];document.getElementById('umStatus').textContent=users.length+' account(s) visible · Signed in as '+viewer.role;document.getElementById('userCreatePanel').style.display=viewer.role==='Administrator'?'block':'none';render()};
-function render(){const host=document.getElementById('umUsers');host.innerHTML='';if(!users.length){host.textContent='No accounts available.';return}users.forEach(u=>{const row=document.createElement('div');row.className='um-row';const canEdit=viewer.role==='Administrator';row.innerHTML='<div><b>'+esc(u.fullName)+'</b><div class="um-meta">'+esc(u.employeeID)+' · @'+esc(u.username)+'</div></div><div>'+esc(u.role)+'</div><div>'+esc(u.status)+'</div><div>'+esc(u.team||'—')+'</div><div class="um-actions"></div>';const actions=row.querySelector('.um-actions');const reset=document.createElement('button');reset.type='button';reset.textContent='Reset Password';reset.onclick=()=>post({action:'adminResetPassword',userID:u.userID},d=>{if(!d||!d.ok)return alert(d&&d.error?d.error:'Reset failed');alert('Temporary password for '+u.fullName+':\\n\\n'+d.tempPassword+'\\n\\nCopy this now. The employee must change it at next sign-in.')});actions.append(reset);if(canEdit){const edit=document.createElement('button');edit.type='button';edit.className='alt';edit.textContent='Edit Role / Status';edit.onclick=()=>{const role=prompt('Role: Administrator, Supervisor, or Employee',u.role);if(!role)return;const status=prompt('Status: Active or Inactive',u.status);if(!status)return;const team=prompt('Team',u.team||'')??u.team;post({action:'adminUpdateUser',userID:u.userID,role,status,team},d=>{if(!d||!d.ok)return alert(d&&d.error?d.error:'Update failed');load()})};actions.append(edit)}host.append(row)})}
 
+function post(fields,cb){
+  if(cmd)return cb({ok:false,error:'Another user-management action is still processing. Please wait.'});
+  const requestId=rid(),n='cmd'+Date.now(),f=document.createElement('form'),i=document.createElement('iframe');
+  cmd={requestId,cb,started:Date.now()};
+  i.name=n;i.style.display='none';document.body.appendChild(i);
+  f.method='POST';f.action=API;f.target=n;f.style.display='none';
+  fields.requestId=requestId;fields.token=token();
+  Object.entries(fields).forEach(([k,v])=>{const x=document.createElement('input');x.type='hidden';x.name=k;x.value=String(v);f.appendChild(x)});
+  document.body.appendChild(f);f.submit();
+  setTimeout(()=>pollCmd(requestId),500);
+  setTimeout(()=>{f.remove();i.remove()},7000);
+}
+function pollCmd(id){
+  if(!cmd||cmd.requestId!==id)return;
+  if(Date.now()-cmd.started>25000){
+    const cb=cmd.cb;cmd=null;cb({ok:false,error:'The request timed out. Refresh the user list before trying again.'});return;
+  }
+  const s=document.createElement('script');
+  s.src=API+'?action=commandResult&requestId='+encodeURIComponent(id)+'&_='+Date.now();
+  s.onload=()=>setTimeout(()=>s.remove(),0);
+  s.onerror=()=>{s.remove();setTimeout(()=>pollCmd(id),900)};
+  document.head.appendChild(s);
+}
+window.SEHC_COMMAND_RESULT_RECEIVE=function(d){
+  if(!cmd)return;
+  if(d&&d.pending){setTimeout(()=>pollCmd(cmd.requestId),650);return}
+  const cb=cmd.cb;cmd=null;cb(d||{ok:false,error:'No response from backend.'})
+};
+
+function load(){
+  $('umStatus').textContent='Refreshing users…';
+  const s=document.createElement('script');
+  s.src=API+'?action=adminUsers&format=jsonp&token='+encodeURIComponent(token())+'&_='+Date.now();
+  s.onload=()=>setTimeout(()=>s.remove(),0);s.onerror=()=>{s.remove();$('umStatus').textContent='Unable to reach user database.'};
+  document.head.appendChild(s);
+}
+window.SEHC_USERS_RECEIVE=function(d){
+  if(!d||!d.ok){$('umStatus').textContent=d&&d.error?d.error:'Unable to load users.';return}
+  viewer=d.viewer;users=d.users||[];
+  $('umStatus').textContent=users.length+' account(s) visible · Signed in as '+viewer.role;
+  $('userCreatePanel').style.display=viewer.role==='Administrator'?'block':'none';
+  render();
+  window.dispatchEvent(new CustomEvent('sehc-users-loaded',{detail:users}));
+};
+
+function showCredentialModal({title,intro,name,employeeID,username,password}){
+  $('umCredentialTitle').textContent=title||'Account Created';
+  $('umCredentialIntro').textContent=intro||'The account was created successfully.';
+  $('umModalName').textContent=name||'—';
+  $('umModalEmployeeID').textContent=employeeID||'—';
+  $('umModalUsername').textContent=username||'—';
+  $('umModalPassword').textContent=password||'—';
+  $('umCopyStatus').textContent='';
+  $('umCredentialModal').classList.add('open');
+  $('umCopyPassword').focus();
+}
+function closeCredentialModal(){$('umCredentialModal').classList.remove('open')}
+async function copyText(text,label){
+  try{await navigator.clipboard.writeText(text);$('umCopyStatus').textContent=label+' copied to clipboard.'}
+  catch(e){$('umCopyStatus').textContent='Copy failed. Select the text and copy it manually.'}
+}
+$('umCopyPassword').onclick=()=>copyText($('umModalPassword').textContent,'Password');
+$('umCopyCredentials').onclick=()=>copyText(
+  'Employee: '+$('umModalName').textContent+'\nEmployee ID: '+$('umModalEmployeeID').textContent+'\nUsername: '+$('umModalUsername').textContent+'\nTemporary Password: '+$('umModalPassword').textContent,
+  'Credentials'
+);
+$('umCloseCredential').onclick=closeCredentialModal;
+$('umCredentialModal').addEventListener('click',e=>{if(e.target===$('umCredentialModal'))closeCredentialModal()});
+
+function setCreateBusy(on,text){
+  $('umCreate').disabled=on;$('umCreate').textContent=on?'Creating Account…':'Create Account';
+  $('umCreateStatus').classList.toggle('is-visible',on);
+  $('umCreateStatusText').textContent=text||'Creating account in the user database…';
+}
+function render(){
+  const host=$('umUsers');host.innerHTML='';
+  if(!users.length){host.textContent='No accounts available.';return}
+  users.forEach(u=>{
+    const row=document.createElement('div');row.className='um-row';const canEdit=viewer.role==='Administrator';
+    row.innerHTML='<div><b>'+esc(u.fullName)+'</b><div class="um-meta">'+esc(u.employeeID)+' · @'+esc(u.username)+'</div></div><div>'+esc(u.role)+'</div><div>'+esc(u.status)+'</div><div>'+esc(u.team||'—')+'</div><div class="um-actions"></div>';
+    const actions=row.querySelector('.um-actions');
+
+    const reset=document.createElement('button');reset.type='button';reset.textContent='Reset Password';
+    reset.onclick=()=>{
+      reset.disabled=true;const original=reset.textContent;reset.textContent='Resetting…';
+      post({action:'adminResetPassword',userID:u.userID},d=>{
+        reset.disabled=false;reset.textContent=original;
+        if(!d||!d.ok)return alert(d&&d.error?d.error:'Password reset failed');
+        showCredentialModal({
+          title:'Temporary Password Reset',
+          intro:'A new temporary password was generated. The employee must change it at the next sign-in.',
+          name:u.fullName,employeeID:u.employeeID,username:u.username,password:d.tempPassword
+        });
+      });
+    };
+    actions.append(reset);
+
+    if(canEdit){
+      const edit=document.createElement('button');edit.type='button';edit.className='alt';edit.textContent='Edit Role / Status';
+      edit.onclick=()=>{
+        const role=prompt('Role: Administrator, Supervisor, or Employee',u.role);if(!role)return;
+        const status=prompt('Status: Active or Inactive',u.status);if(!status)return;
+        const team=prompt('Team',u.team||'')??u.team;
+        post({action:'adminUpdateUser',userID:u.userID,role,status,team},d=>{if(!d||!d.ok)return alert(d&&d.error?d.error:'Update failed');load()})
+      };
+      actions.append(edit);
+    }
+    host.append(row)
+  })
+}
 
 function resetCreateUserForm(){
-  document.getElementById('umFullName').value='';
-  document.getElementById('umUsername').value='';
-  document.getElementById('umEmail').value='';
-  document.getElementById('umRole').value='Employee';
-  document.getElementById('umTeam').value='EBO';
-  updateIdPreview();
+  $('umFullName').value='';$('umUsername').value='';$('umEmail').value='';$('umRole').value='Employee';$('umTeam').value='EBO';updateIdPreview();
 }
-
 function updateIdPreview(){
-  const role=document.getElementById('umRole').value;
-  const prefix=role==='Administrator'?'ADM':role==='Supervisor'?'SUP':'EMP';
-  document.getElementById('umEmployeeID').value=prefix+'-#### (assigned on Create)';
+  const role=$('umRole').value,prefix=role==='Administrator'?'ADM':role==='Supervisor'?'SUP':'EMP';
+  $('umEmployeeID').value=prefix+'-#### (assigned on Create)';
 }
-document.getElementById('umRole').addEventListener('change',updateIdPreview);
-updateIdPreview();
-
+$('umRole').addEventListener('change',updateIdPreview);updateIdPreview();
 
 ['umFullName','umUsername','umEmail','umRole','umTeam'].forEach(id=>{
-  document.getElementById(id).addEventListener('input',()=>{
-    const box=document.getElementById('umCreateResult');
-    if(box.style.display!=='none'){
-      box.style.display='none';
-      box.innerHTML='';
-    }
-  });
+  $(id).addEventListener('input',()=>{
+    const box=$('umCreateResult');
+    if(box.style.display!=='none'){box.style.display='none';box.innerHTML=''}
+  })
 });
 
-document.getElementById('umRefresh').onclick=load;
-document.getElementById('umCreate').onclick=function(){const fields={action:'adminCreateUser',fullName:document.getElementById('umFullName').value.trim(),username:document.getElementById('umUsername').value.trim(),email:document.getElementById('umEmail').value.trim(),role:document.getElementById('umRole').value,team:document.getElementById('umTeam').value.trim()};post(fields,d=>{const box=document.getElementById('umCreateResult');box.style.display='block';if(!d||!d.ok){box.textContent=d&&d.error?d.error:'Unable to create account.';return}box.innerHTML='<b>Account created.</b><br>Employee ID: <code style="font-size:16px">'+esc(d.user.employeeID)+'</code><br>Temporary password: <code style="font-size:16px">'+esc(d.tempPassword)+'</code><br><small>Copy the temporary password now. It is not stored in readable form.</small>';resetCreateUserForm();load()})};
+$('umRefresh').onclick=load;
+$('umCreate').onclick=function(){
+  const fields={
+    action:'adminCreateUser',
+    fullName:$('umFullName').value.trim(),
+    username:$('umUsername').value.trim(),
+    email:$('umEmail').value.trim(),
+    role:$('umRole').value,
+    team:$('umTeam').value.trim()
+  };
+  if(!fields.fullName)return alert('Enter the employee full name.');
+  if(!fields.username)return alert('Enter a username.');
+  if(!fields.email)return alert('Enter the employee work email.');
+  if(!fields.team)return alert('Enter a team.');
+
+  const box=$('umCreateResult');box.style.display='none';box.innerHTML='';
+  setCreateBusy(true,'Creating '+fields.fullName+'… Please wait. Do not click Create Account again.');
+  post(fields,d=>{
+    setCreateBusy(false);
+    box.style.display='block';
+    if(!d||!d.ok){
+      box.innerHTML='<b>Account was not created.</b><br>'+esc(d&&d.error?d.error:'Unable to create account.');
+      return;
+    }
+    const createdName=fields.fullName,createdUsername=fields.username;
+    box.innerHTML='<b>Account created successfully.</b><br>Employee ID: <code>'+esc(d.user.employeeID)+'</code><br><small>The temporary password is also shown in the credential window. Copy it before leaving this page.</small>';
+    showCredentialModal({
+      title:'Account Created Successfully',
+      intro:'The new Engagement Hub account is ready. Copy the temporary password before closing this message.',
+      name:createdName,employeeID:d.user.employeeID,username:createdUsername,password:d.tempPassword
+    });
+    resetCreateUserForm();load();
+  });
+};
 window.addEventListener('sehc-auth-ready',e=>{const u=e.detail||{};if(!['Administrator','Supervisor'].includes(u.role)){location.replace('employee.html');return}load()});
 })();
 </script><script id="sehc-overview-links-v47">
@@ -1062,4 +1209,23 @@ $('eligEmployee').addEventListener('change',()=>{if(!snapshot)return;const x=(sn
 $('eligMonth').addEventListener('change',()=>load());$('eligRefresh').onclick=()=>load();document.querySelector('button[onclick="go(\'eligibility\')"]')?.addEventListener('click',()=>setTimeout(()=>load(),60));$('eligMonth').value=currentMonth();window.addEventListener('sehc-auth-ready',()=>setTimeout(()=>load(),100));
 })();
 </script>
+
+<div class="um-modal-backdrop" id="umCredentialModal" role="dialog" aria-modal="true" aria-labelledby="umCredentialTitle">
+  <div class="um-modal">
+    <h2 id="umCredentialTitle">Account Created</h2>
+    <p id="umCredentialIntro">The account was created successfully.</p>
+    <div class="um-warning">The temporary password is shown only for this administrative action. Copy it before closing this message.</div>
+    <dl class="um-cred-grid">
+      <dt>Employee</dt><dd id="umModalName">—</dd>
+      <dt>Employee ID</dt><dd id="umModalEmployeeID">—</dd>
+      <dt>Username</dt><dd id="umModalUsername">—</dd>
+      <dt>Temporary Password</dt><dd><div class="um-password-box" id="umModalPassword">—</div><div class="um-copy-ok" id="umCopyStatus"></div></dd>
+    </dl>
+    <div class="um-modal-actions">
+      <button type="button" id="umCopyPassword">Copy Password</button>
+      <button type="button" id="umCopyCredentials" class="alt">Copy Credentials</button>
+      <button type="button" id="umCloseCredential" class="alt">I Copied It</button>
+    </div>
+  </div>
+</div>
 </body></html>
