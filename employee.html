@@ -868,10 +868,16 @@ async function load(force=false){
   if(busy)return;if(!force&&data&&Date.now()-lastLoad<60000){render();return}
   busy=true;$('employeeContestStatus').textContent='Loading contests from Operations…';
   try{
-    const d=await window.SEHC_API_V60.jsonp('employeeContestsV61',{},10000);if(!d||!d.ok)throw new Error(d&&d.error?d.error:'Unable to load contests');
+    const d=await window.SEHC_API_V60.jsonp('employeeContestsV63',{},10000);if(!d||!d.ok)throw new Error(d&&d.error?d.error:'Unable to load contests');
     data=d;lastLoad=Date.now();render();
-  }catch(err){$('employeeContestStatus').textContent='Contests could not be loaded: '+(err.message||String(err))}
-  finally{busy=false}
+    const stamp=new Intl.DateTimeFormat('en-US',{hour:'numeric',minute:'2-digit'}).format(new Date());
+    if((d.activeContests||[]).length===0&&(d.upcomingContests||[]).length===0)$('employeeContestStatus').innerHTML='<b>No active contests.</b> Last checked '+stamp+'.';
+  }catch(err){
+    $('contestNavBadge').textContent='';
+    $('employeeContestStatus').innerHTML='<b>Contest data could not be loaded.</b><br>'+esc(err.message||String(err))+'<br><span class="muted">Use Refresh Contests to retry.</span>';
+    $('employeeContestList').innerHTML='<div class="card"><p>The contest service did not return data. This does not affect Daily Bingo or your login.</p><button class="btn alt" id="contestRetryInline" type="button">Retry Contest Load</button></div>';
+    setTimeout(()=>$('contestRetryInline')?.addEventListener('click',()=>load(true)),0);
+  }finally{busy=false}
 }
 function init(){
   if(started)return;started=true;
