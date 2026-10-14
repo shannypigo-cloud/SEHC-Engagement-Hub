@@ -270,6 +270,13 @@ header nav{flex:0 0 auto}.sehc-sidebar-session{margin-top:auto;padding:14px 8px 
 .um-copy-ok{font-size:12px;color:#0a7650;font-weight:800;min-height:18px;margin-top:6px}
 @media(max-width:600px){.um-cred-grid{grid-template-columns:1fr}.um-modal-actions button{width:100%}}
 </style>
+
+<style id="sehc-user-list-v58-style">
+#umStatus.is-loading{display:flex;align-items:center;gap:8px;color:#315f70;font-weight:700}
+#umStatus.is-error{color:#9a2f2f;font-weight:700}
+#umStatus.is-ok{color:#17683d;font-weight:700}
+#umStatus .mini-spinner{width:14px;height:14px;border:2px solid #cbe2e8;border-top-color:#0785a8;border-radius:50%;animation:umspin .8s linear infinite;display:inline-block}
+</style>
 </head><body>
 <style id="sehc-auth-ui">
 #sehcAuthGate{position:fixed;inset:0;z-index:99999;background:#eef8fb;display:flex;align-items:center;justify-content:center;font-family:Segoe UI,Arial;color:#00475c}
@@ -828,17 +835,47 @@ window.SEHC_COMMAND_RESULT_RECEIVE=function(d){
   const cb=cmd.cb;cmd=null;cb(d||{ok:false,error:'No response from backend.'})
 };
 
+let usersLoadSeq=0,usersLoadTimer=null,usersLoadScript=null,usersLoadInFlight=false;
+function setUsersStatus(kind,message){
+  const el=$('umStatus');el.className=kind?('is-'+kind):'';
+  el.innerHTML=kind==='loading'?'<span class="mini-spinner" aria-hidden="true"></span><span>'+esc(message)+'</span>':esc(message);
+}
+function finishUsersLoad(){
+  clearTimeout(usersLoadTimer);usersLoadTimer=null;usersLoadInFlight=false;
+  if(usersLoadScript){usersLoadScript.remove();usersLoadScript=null}
+  $('umRefresh').disabled=false;$('umRefresh').textContent='Refresh Users';
+}
 function load(){
-  $('umStatus').textContent='Refreshing users…';
-  const s=document.createElement('script');
+  if(usersLoadInFlight)return;
+  usersLoadInFlight=true;usersLoadSeq++;
+  const seq=usersLoadSeq;
+  $('umRefresh').disabled=true;$('umRefresh').textContent='Loading…';
+  setUsersStatus('loading','Loading accounts from Google Sheets…');
+  if(usersLoadScript)usersLoadScript.remove();
+  const s=document.createElement('script');usersLoadScript=s;
+  s.id='sehc-users-load-'+seq;
   s.src=API+'?action=adminUsers&format=jsonp&token='+encodeURIComponent(token())+'&_='+Date.now();
-  s.onload=()=>setTimeout(()=>s.remove(),0);s.onerror=()=>{s.remove();$('umStatus').textContent='Unable to reach user database.'};
+  s.onerror=()=>{
+    if(seq!==usersLoadSeq)return;
+    finishUsersLoad();
+    setUsersStatus('error','Accounts could not be loaded. Click Refresh Users to try again.');
+  };
+  s.onload=()=>{};
   document.head.appendChild(s);
+  usersLoadTimer=setTimeout(()=>{
+    if(seq!==usersLoadSeq)return;
+    finishUsersLoad();
+    setUsersStatus('error','The user list took too long to respond. The request was stopped so the page would not stay loading. Click Refresh Users to retry.');
+  },9000);
 }
 window.SEHC_USERS_RECEIVE=function(d){
-  if(!d||!d.ok){$('umStatus').textContent=d&&d.error?d.error:'Unable to load users.';return}
+  finishUsersLoad();
+  if(!d||!d.ok){
+    setUsersStatus('error',d&&d.error?d.error:'Unable to load users.');
+    return;
+  }
   viewer=d.viewer;users=d.users||[];
-  $('umStatus').textContent=users.length+' account(s) visible · Signed in as '+viewer.role;
+  setUsersStatus('ok',users.length+' account(s) loaded · Signed in as '+viewer.role);
   $('userCreatePanel').style.display=viewer.role==='Administrator'?'block':'none';
   render();
   window.dispatchEvent(new CustomEvent('sehc-users-loaded',{detail:users}));
@@ -926,7 +963,7 @@ $('umRole').addEventListener('change',updateIdPreview);updateIdPreview();
   })
 });
 
-$('umRefresh').onclick=load;
+$('umRefresh').onclick=()=>{finishUsersLoad();load()};
 $('umCreate').onclick=function(){
   const fields={
     action:'adminCreateUser',
@@ -960,7 +997,7 @@ $('umCreate').onclick=function(){
     resetCreateUserForm();load();
   });
 };
-window.addEventListener('sehc-auth-ready',e=>{const u=e.detail||{};if(!['Administrator','Supervisor'].includes(u.role)){location.replace('employee.html');return}load()});
+window.addEventListener('sehc-auth-ready',e=>{const u=e.detail||{};if(!['Administrator','Supervisor'].includes(u.role)){location.replace('employee.html');return}load()});document.querySelector('button[onclick="go(\'users\')"]')?.addEventListener('click',()=>{if(!usersLoadInFlight)load()});
 })();
 </script><script id="sehc-overview-links-v47">
 (function(){
