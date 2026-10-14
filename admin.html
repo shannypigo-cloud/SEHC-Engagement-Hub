@@ -797,7 +797,25 @@ refresh();setInterval(()=>{
 },POLL)}
 if(document.readyState==='loading')document.addEventListener('DOMContentLoaded',setup);else setup();
 })();
-</script><style id="sehc-user-mgmt-css">.sehc-user-grid{display:grid;grid-template-columns:repeat(3,minmax(180px,1fr));gap:12px;margin:14px 0}.sehc-user-grid label{display:flex;flex-direction:column;gap:5px;font-weight:700}.sehc-user-grid input,.sehc-user-grid select{padding:10px;border:1px solid #bed7df;border-radius:8px}.um-row{display:grid;grid-template-columns:1.4fr .8fr .8fr 1fr auto;gap:10px;align-items:center;border-top:1px solid #dbe9ed;padding:10px 0}.um-row:first-child{border-top:0}.um-meta{font-size:12px;color:#678390}.um-actions{display:flex;gap:6px;flex-wrap:wrap}@media(max-width:900px){.sehc-user-grid{grid-template-columns:1fr 1fr}.um-row{grid-template-columns:1fr}}@media(max-width:600px){.sehc-user-grid{grid-template-columns:1fr}}</style><script id="sehc-user-management-v57">
+</script><style id="sehc-user-mgmt-css">.sehc-user-grid{display:grid;grid-template-columns:repeat(3,minmax(180px,1fr));gap:12px;margin:14px 0}.sehc-user-grid label{display:flex;flex-direction:column;gap:5px;font-weight:700}.sehc-user-grid input,.sehc-user-grid select{padding:10px;border:1px solid #bed7df;border-radius:8px}.um-row{display:grid;grid-template-columns:1.4fr .8fr .8fr 1fr auto;gap:10px;align-items:center;border-top:1px solid #dbe9ed;padding:10px 0}.um-row:first-child{border-top:0}.um-meta{font-size:12px;color:#678390}.um-actions{display:flex;gap:6px;flex-wrap:wrap}@media(max-width:900px){.sehc-user-grid{grid-template-columns:1fr 1fr}.um-row{grid-template-columns:1fr}}@media(max-width:600px){.sehc-user-grid{grid-template-columns:1fr}}</style><div class="um-modal-backdrop" id="umCredentialModal" role="dialog" aria-modal="true" aria-labelledby="umCredentialTitle">
+  <div class="um-modal">
+    <h2 id="umCredentialTitle">Account Created</h2>
+    <p id="umCredentialIntro">The account was created successfully.</p>
+    <div class="um-warning">The temporary password is shown only for this administrative action. Copy it before closing this message.</div>
+    <dl class="um-cred-grid">
+      <dt>Employee</dt><dd id="umModalName">—</dd>
+      <dt>Employee ID</dt><dd id="umModalEmployeeID">—</dd>
+      <dt>Username</dt><dd id="umModalUsername">—</dd>
+      <dt>Temporary Password</dt><dd><div class="um-password-box" id="umModalPassword">—</div><div class="um-copy-ok" id="umCopyStatus"></div></dd>
+    </dl>
+    <div class="um-modal-actions">
+      <button type="button" id="umCopyPassword">Copy Password</button>
+      <button type="button" id="umCopyCredentials" class="alt">Copy Credentials</button>
+      <button type="button" id="umCloseCredential" class="alt">I Copied It</button>
+    </div>
+  </div>
+</div>
+<script id="sehc-user-management-v59">
 (function(){
 const API="https://script.google.com/macros/s/AKfycbwsjW0VFilbJokuaNYWF-vU7JktoEnWsL4TLJ7u4MNH3W4pNv2d3VAhaT24bE3j2gXo/exec";
 let viewer=null,users=[],cmd=null;
@@ -897,13 +915,13 @@ async function copyText(text,label){
   try{await navigator.clipboard.writeText(text);$('umCopyStatus').textContent=label+' copied to clipboard.'}
   catch(e){$('umCopyStatus').textContent='Copy failed. Select the text and copy it manually.'}
 }
-$('umCopyPassword').onclick=()=>copyText($('umModalPassword').textContent,'Password');
-$('umCopyCredentials').onclick=()=>copyText(
+requireEl('umCopyPassword').onclick=()=>copyText($('umModalPassword').textContent,'Password');
+requireEl('umCopyCredentials').onclick=()=>copyText(
   'Employee: '+$('umModalName').textContent+'\nEmployee ID: '+$('umModalEmployeeID').textContent+'\nUsername: '+$('umModalUsername').textContent+'\nTemporary Password: '+$('umModalPassword').textContent,
   'Credentials'
 );
-$('umCloseCredential').onclick=closeCredentialModal;
-$('umCredentialModal').addEventListener('click',e=>{if(e.target===$('umCredentialModal'))closeCredentialModal()});
+requireEl('umCloseCredential').onclick=closeCredentialModal;
+requireEl('umCredentialModal').addEventListener('click',e=>{if(e.target===$('umCredentialModal'))closeCredentialModal()});
 
 function setCreateBusy(on,text){
   $('umCreate').disabled=on;$('umCreate').textContent=on?'Creating Account…':'Create Account';
@@ -954,7 +972,7 @@ function updateIdPreview(){
   const role=$('umRole').value,prefix=role==='Administrator'?'ADM':role==='Supervisor'?'SUP':'EMP';
   $('umEmployeeID').value=prefix+'-#### (assigned on Create)';
 }
-$('umRole').addEventListener('change',updateIdPreview);updateIdPreview();
+requireEl('umRole').addEventListener('change',updateIdPreview);updateIdPreview();
 
 ['umFullName','umUsername','umEmail','umRole','umTeam'].forEach(id=>{
   $(id).addEventListener('input',()=>{
@@ -963,8 +981,8 @@ $('umRole').addEventListener('change',updateIdPreview);updateIdPreview();
   })
 });
 
-$('umRefresh').onclick=()=>{finishUsersLoad();load()};
-$('umCreate').onclick=function(){
+requireEl('umRefresh').onclick=()=>{finishUsersLoad();load()};
+requireEl('umCreate').onclick=function(){
   const fields={
     action:'adminCreateUser',
     fullName:$('umFullName').value.trim(),
@@ -997,7 +1015,7 @@ $('umCreate').onclick=function(){
     resetCreateUserForm();load();
   });
 };
-window.addEventListener('sehc-auth-ready',e=>{const u=e.detail||{};if(!['Administrator','Supervisor'].includes(u.role)){location.replace('employee.html');return}load()});document.querySelector('button[onclick="go(\'users\')"]')?.addEventListener('click',()=>{if(!usersLoadInFlight)load()});
+window.addEventListener('sehc-auth-ready',e=>{const u=e.detail||{};if(!['Administrator','Supervisor'].includes(u.role)){location.replace('employee.html');return}load()});const readyEl=$('umJsReady');if(readyEl)readyEl.textContent='User Management module ready.';document.querySelector('button[onclick="go(\'users\')"]')?.addEventListener('click',()=>{if(!usersLoadInFlight)load()});
 })();
 </script><script id="sehc-overview-links-v47">
 (function(){
@@ -1247,22 +1265,5 @@ $('eligMonth').addEventListener('change',()=>load());$('eligRefresh').onclick=()
 })();
 </script>
 
-<div class="um-modal-backdrop" id="umCredentialModal" role="dialog" aria-modal="true" aria-labelledby="umCredentialTitle">
-  <div class="um-modal">
-    <h2 id="umCredentialTitle">Account Created</h2>
-    <p id="umCredentialIntro">The account was created successfully.</p>
-    <div class="um-warning">The temporary password is shown only for this administrative action. Copy it before closing this message.</div>
-    <dl class="um-cred-grid">
-      <dt>Employee</dt><dd id="umModalName">—</dd>
-      <dt>Employee ID</dt><dd id="umModalEmployeeID">—</dd>
-      <dt>Username</dt><dd id="umModalUsername">—</dd>
-      <dt>Temporary Password</dt><dd><div class="um-password-box" id="umModalPassword">—</div><div class="um-copy-ok" id="umCopyStatus"></div></dd>
-    </dl>
-    <div class="um-modal-actions">
-      <button type="button" id="umCopyPassword">Copy Password</button>
-      <button type="button" id="umCopyCredentials" class="alt">Copy Credentials</button>
-      <button type="button" id="umCloseCredential" class="alt">I Copied It</button>
-    </div>
-  </div>
-</div>
+
 </body></html>
