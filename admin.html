@@ -766,7 +766,7 @@ verify();
 </section>
 <section class="hidden" id="users"><h1>User Management</h1><div class="panel" id="userCreatePanel"><h2>Create Account</h2><p>Administrators create new Engagement Hub accounts. Employee ID is generated automatically based on role. New users receive a temporary password and must change it on first sign-in.</p><div class="sehc-user-grid"><label>Employee ID<input id="umEmployeeID" value="Generated automatically" readonly aria-readonly="true"></label><label>Full Name<input id="umFullName" placeholder="Employee name"></label><label>Username<input id="umUsername" placeholder="first.last"></label><label>Email<input id="umEmail" placeholder="name@gulfrcm.com"></label><label>Role<select id="umRole"><option>Employee</option><option>Supervisor</option><option>Administrator</option></select></label><label>Team<input id="umTeam" placeholder="EBO Team A"></label></div><button id="umCreate" type="button">Create Account</button>
 <div id="umCreateStatus" class="um-operation-status" role="status" aria-live="polite"><span class="um-spinner" aria-hidden="true"></span><span id="umCreateStatusText">Working…</span></div>
-<div id="umCreateResult" class="notice" style="display:none;margin-top:12px"></div></div><div class="panel"><div class="row"><h2>Accounts</h2><button id="umRefresh" type="button">Refresh Users</button></div><p id="umStatus" role="status">Ready to load accounts.</p><div id="umUsers"></div></div></section><section class="hidden" id="reports"><h1>Reporting &amp; Audit</h1><div class="sehc-report-filters" id="sehc-report-filters"><h2>Report Date Range &amp; Contest History</h2><p>Choose a report, date range, or specific contest. Preview matching records before exporting.</p><div class="sehc-report-filter-grid"><div><label for="rf-type">Report Type</label><select id="rf-type"><option value="contests">Previous Contests</option><option value="bingo">Daily Bingo &amp; Category Results</option><option value="winners">Grand Draw Winners</option><option value="wallet">Wallet &amp; Redemptions</option></select></div><div><label for="rf-start">From Date</label><input id="rf-start" type="date"/></div><div><label for="rf-end">To Date</label><input id="rf-end" type="date"/></div><div><label for="rf-contest">Specific Contest</label><select id="rf-contest"><option value="">All Contests</option></select></div></div><div class="sehc-report-filter-actions"><button id="rf-apply" type="button">Apply Filters</button><button class="secondary" id="rf-clear" type="button">Clear Filters</button><button id="rf-csv" type="button">Download Filtered CSV</button><button id="rf-excel" type="button">Download Filtered Excel</button></div><div class="sehc-report-summary" id="rf-summary" role="status"></div><div class="sehc-report-preview" id="rf-preview"></div><p style="font-size:12px;color:#496777">Dates are inclusive. Records without a recognizable date cannot be matched when a date filter is active. Some legacy prototype records may remain browser-local and are not part of the live Engagement Hub.</p></div><div class="panel"><h2>Download Reports</h2><p>Export the current prototype records as Excel-compatible CSV files or an Excel workbook. The reports reflect only data available in this browser.</p><div class="report-grid">
+<div id="umCreateResult" class="notice" style="display:none;margin-top:12px"></div></div><div class="panel"><div class="row"><h2>Accounts</h2><button id="umRefresh" type="button">Refresh Users</button></div><p id="umStatus" role="status">Ready to load accounts.</p><p id="umResetRecoveryStatus" role="status" aria-live="polite" style="display:none;padding:11px 14px;border-radius:10px;background:#fff4d8;color:#80531b;font-weight:650;margin:10px 0;"></p><div id="umUsers"></div></div></section><section class="hidden" id="reports"><h1>Reporting &amp; Audit</h1><div class="sehc-report-filters" id="sehc-report-filters"><h2>Report Date Range &amp; Contest History</h2><p>Choose a report, date range, or specific contest. Preview matching records before exporting.</p><div class="sehc-report-filter-grid"><div><label for="rf-type">Report Type</label><select id="rf-type"><option value="contests">Previous Contests</option><option value="bingo">Daily Bingo &amp; Category Results</option><option value="winners">Grand Draw Winners</option><option value="wallet">Wallet &amp; Redemptions</option></select></div><div><label for="rf-start">From Date</label><input id="rf-start" type="date"/></div><div><label for="rf-end">To Date</label><input id="rf-end" type="date"/></div><div><label for="rf-contest">Specific Contest</label><select id="rf-contest"><option value="">All Contests</option></select></div></div><div class="sehc-report-filter-actions"><button id="rf-apply" type="button">Apply Filters</button><button class="secondary" id="rf-clear" type="button">Clear Filters</button><button id="rf-csv" type="button">Download Filtered CSV</button><button id="rf-excel" type="button">Download Filtered Excel</button></div><div class="sehc-report-summary" id="rf-summary" role="status"></div><div class="sehc-report-preview" id="rf-preview"></div><p style="font-size:12px;color:#496777">Dates are inclusive. Records without a recognizable date cannot be matched when a date filter is active. Some legacy prototype records may remain browser-local and are not part of the live Engagement Hub.</p></div><div class="panel"><h2>Download Reports</h2><p>Export the current prototype records as Excel-compatible CSV files or an Excel workbook. The reports reflect only data available in this browser.</p><div class="report-grid">
 <div class="report-card"><h3>Daily Bingo &amp; Category Results</h3><p>Entry status, categories, approved tickets, and submission dates.</p><button onclick="sehcExportReport('bingo','csv')">Download CSV</button><button onclick="sehcExportReport('bingo','xls')">Download Excel</button></div>
 <div class="report-card"><h3>Grand Draw Winners</h3><p>Past winners, prizes, ticket counts, and payout status.</p><button onclick="sehcExportReport('winners','csv')">Download CSV</button><button onclick="sehcExportReport('winners','xls')">Download Excel</button></div>
 <div class="report-card"><h3>Previous Contests</h3><p>Contest configurations and historical arcade/contest submissions.</p><button onclick="sehcExportReport('contests','csv')">Download CSV</button><button onclick="sehcExportReport('contests','xls')">Download Excel</button></div>
@@ -782,8 +782,8 @@ const key='sehc-engagement-v5-demo',rewardKey='sehc-reward-config',contestKey='s
     setTimeout(window.SEHC_ADMIN_REFRESH,50);
     setTimeout(()=>window.SEHCBingoRankingRefresh&&window.SEHCBingoRankingRefresh(),350);
   }
-}function render(){load();$('pending').textContent=db.entries.filter(x=>x.status==='pending').length+db.games.filter(x=>x.status==='pending').length;$('redeems').textContent=db.redemptions.filter(x=>x.status==='pending').length;$('approved').textContent=pool().length;$('issued').textContent=db.ledger.filter(x=>x.delta>0).reduce((a,x)=>a+x.delta,0);$('spent').textContent=-db.ledger.filter(x=>x.delta<0).reduce((a,x)=>a+x.delta,0);$('drawCount').textContent=db.draws.length;
-$('queue').innerHTML=[...db.entries.filter(x=>x.status==='pending').map(x=>({...x,kind:'entry'})),...db.games.filter(x=>x.status==='pending').map(x=>({...x,kind:'game'}))].map(x=>`<div class="item"><span><b>${esc(x.name)}</b><small> · ${esc(x.kind==='entry'?'Bingo '+x.cat+' · '+x.ref:'Arcade '+x.mode+' · '+x.points+' points')}</small></span><span><button onclick="review('${x.kind}','${x.id}',true)">Approve</button> <button class="alt" onclick="review('${x.kind}','${x.id}',false)">Reject</button></span></div>`).join('')||'No pending submissions';
+}function render(){load();/* Live Bingo counts are owned exclusively by demoAdmin; never overwrite with browser-local demo rows. */$('redeems').textContent='0';$('issued').textContent=db.ledger.filter(x=>x.delta>0).reduce((a,x)=>a+x.delta,0);$('spent').textContent=-db.ledger.filter(x=>x.delta<0).reduce((a,x)=>a+x.delta,0);$('drawCount').textContent=db.draws.length;
+$('queue').innerHTML=[...db.games.filter(x=>x.status==='pending').map(x=>({...x,kind:'game'}))].map(x=>`<div class="item"><span><b>${esc(x.name)}</b><small> · ${esc(x.kind==='entry'?'Bingo '+x.cat+' · '+x.ref:'Arcade '+x.mode+' · '+x.points+' points')}</small></span><span><button onclick="review('${x.kind}','${x.id}',true)">Approve</button> <button class="alt" onclick="review('${x.kind}','${x.id}',false)">Reject</button></span></div>`).join('')||'No pending submissions';
 $('redemptionQueue').innerHTML=db.redemptions.filter(x=>x.status==='pending').map(x=>`<div class="item"><span>${esc(x.name)} · ${esc(x.reward)} · ${x.cost} points</span><span><button onclick="redeem('${x.id}',true)">Approve</button> <button class="alt" onclick="redeem('${x.id}',false)">Reject</button></span></div>`).join('')||'No pending redemptions';
 
 const todayKey=new Date().toLocaleDateString('en-CA');
@@ -1022,8 +1022,8 @@ const status=document.getElementById('integrated-status'), pending=document.getE
 let timer=null;
 function make(tag,cls,text){const el=document.createElement(tag);if(cls)el.className=cls;if(text!=null)el.textContent=text;return el}
 function show(host,items,canAct){host.replaceChildren();if(!items.length){host.append(make('p','',canAct?'No pending Bingo submissions for today.':'No approved Bingo entries for today.'));return;}items.forEach(e=>{const row=make('div','item');row.dataset.entryId=e.id;const info=make('div');const verify=e.verificationMode==='supervisor_report'?('Verify via '+(e.verificationSource||'Supervisor Report')):('Ref: '+(e.accountReference||'—'));info.append(make('b','',e.name),make('div','muted',e.employeeID+' · '+verify+' · '+e.category+' · '+e.tickets+' '+(e.tickets===1?'ticket':'tickets')));if(!canAct){const approver=String(e.approvedBy||'').replace(/\s*\([^)]*\)\s*$/,'').trim()||'Unknown';const when=e.approvedAt?(' · '+String(e.approvedAt).replace('T',' ')):'';info.append(make('div','approval-meta','Approved by '+approver+when));}row.append(info);if(canAct){const actions=make('div');[['Approve','demoApprove'],['Reject','demoReject']].forEach(([label,action])=>{const btn=make('button',label==='Approve'?'btn':'btn alt',label);btn.type='button';btn.onclick=()=>act(action,e.id,label);actions.append(btn,document.createTextNode(' '));});row.append(actions)}host.append(row);})}
-window.SEHC_ADMIN_RECEIVE=function(data){clearTimeout(timer);if(!data||data.ok!==true){status.textContent='The Engagement Hub returned an error.';return;}const all=Array.isArray(data.entries)?data.entries:[];window.SEHC_ADMIN_ENTRIES=all;const waiting=all.filter(x=>x.status==='pending');const done=all.filter(x=>x.status==='approved');status.textContent='Connected · '+data.date+' · '+waiting.length+' pending · '+done.length+' approved';show(pending,waiting,true);show(approved,done,false);const p=document.getElementById('pending');if(p)p.textContent=String(waiting.length);const a=document.getElementById('approved');if(a)a.textContent=String(done.reduce((n,x)=>n+(Number(x.tickets)||0),0));if(window.SEHCBingoRankingRefresh)window.SEHCBingoRankingRefresh();};
-function refresh(){status.textContent='Refreshing…';const old=document.getElementById('sehc-admin-integrated-jsonp');if(old)old.remove();const s=document.createElement('script');s.id='sehc-admin-integrated-jsonp';s.src=API+'?action=demoAdmin&format=jsonp&token='+encodeURIComponent(window.SEHC_AUTH_TOKEN||'')+'&_='+Date.now();s.onerror=()=>{status.textContent='Unable to reach the Engagement Hub.';s.remove()};s.onload=()=>setTimeout(()=>s.remove(),0);document.head.appendChild(s);timer=setTimeout(()=>{status.textContent='Connection timed out. Try Refresh again.';s.remove();},15000);}
+window.SEHC_ADMIN_RECEIVE=function(data){clearTimeout(timer);if(!data||data.ok!==true){window.SEHC_BINGO_SYNC_OK=false;status.textContent='Unable to verify live Bingo approvals. Please refresh.';window.dispatchEvent(new Event('sehc-bingo-sync'));return;}window.SEHC_BINGO_SYNC_OK=true;const all=Array.isArray(data.entries)?data.entries:[];window.SEHC_ADMIN_ENTRIES=all;const waiting=all.filter(x=>x.status==='pending');const done=all.filter(x=>x.status==='approved');status.textContent='Connected · '+data.date+' · '+waiting.length+' pending · '+done.length+' approved';show(pending,waiting,true);show(approved,done,false);const p=document.getElementById('pending');if(p)p.textContent=String(waiting.length);const a=document.getElementById('approved');if(a)a.textContent=String(done.reduce((n,x)=>n+(Number(x.tickets)||0),0));if(window.SEHCBingoRankingRefresh)window.SEHCBingoRankingRefresh();window.dispatchEvent(new Event('sehc-bingo-sync'));};
+function refresh(){status.textContent='Refreshing…';const old=document.getElementById('sehc-admin-integrated-jsonp');if(old)old.remove();const s=document.createElement('script');s.id='sehc-admin-integrated-jsonp';s.src=API+'?action=demoAdmin&format=jsonp&token='+encodeURIComponent(window.SEHC_AUTH_TOKEN||'')+'&_='+Date.now();s.onerror=()=>{window.SEHC_BINGO_SYNC_OK=false;status.textContent='Unable to verify live Bingo approvals. Please refresh.';window.dispatchEvent(new Event('sehc-bingo-sync'));s.remove()};s.onload=()=>setTimeout(()=>s.remove(),0);document.head.appendChild(s);timer=setTimeout(()=>{window.SEHC_BINGO_SYNC_OK=false;status.textContent='Approval refresh timed out. Live count unavailable; please refresh.';window.dispatchEvent(new Event('sehc-bingo-sync'));s.remove();},15000);}
 window.SEHC_ADMIN_REFRESH=refresh;
 function post(fields,onVerify){fields.token=window.SEHC_AUTH_TOKEN||'';const name='sehc-admin-post-'+Date.now();const iframe=document.createElement('iframe');iframe.name=name;iframe.style.display='none';document.body.appendChild(iframe);const form=document.createElement('form');form.method='POST';form.action=API;form.target=name;form.style.display='none';Object.entries(fields).forEach(([k,v])=>{const i=document.createElement('input');i.type='hidden';i.name=k;i.value=String(v);form.appendChild(i)});document.body.appendChild(form);form.submit();setTimeout(()=>{form.remove();iframe.remove();},5000);[1200,2800,5000].forEach(ms=>setTimeout(()=>{refresh();if(ms===5000&&onVerify)onVerify();},ms));}
 function act(action,id,label){if(!confirm(label+' this Bingo submission?'))return;status.textContent=label+'… Please wait while the change is verified.';post({action,entryID:id},()=>{setTimeout(()=>{const stillPending=[...pending.querySelectorAll('.item')].some(el=>el.dataset.entryId===id);if(stillPending)status.textContent='The entry is still pending. Please refresh and try again.';},800)});}
@@ -1440,16 +1440,105 @@ window.SEHC_API_V60={jsonp,command,token,API};
   </div>
 </div>
 
-<script id="sehc-user-management-v60">
+<script id="sehc-user-management-v70">
 (function(){
 const $=id=>document.getElementById(id);
-let viewer=null,users=[],started=false,busy=false;
+let viewer=null,users=[],started=false,busy=false,activePasswordReset=null;
 function esc(s){return String(s??'').replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]))}
 function status(kind,msg){
   const el=$('umStatus');if(!el)return;
   el.className=kind==='error'?'is-error':kind==='ok'?'is-ok':kind==='loading'?'is-loading':'';
   el.innerHTML=kind==='loading'?'<span class="mini-spinner"></span><span>'+esc(msg)+'</span>':esc(msg);
 }
+
+const RESET_KEY_PREFIX='sehc-v70-reset-pending:';
+function resetStorageKey(userID){return RESET_KEY_PREFIX+String(userID||'')}
+function pendingReset(userID){
+  try{const raw=sessionStorage.getItem(resetStorageKey(userID));return raw?JSON.parse(raw):null}catch(e){return null}
+}
+function newResetID(){
+  if(!window.crypto||!crypto.getRandomValues)throw new Error('Secure random IDs are required for password reset');
+  const n=new Uint8Array(24);crypto.getRandomValues(n);
+  return 'pr_'+Array.from(n,b=>b.toString(16).padStart(2,'0')).join('');
+}
+function resetNotice(msg){
+  const n=$('umResetRecoveryStatus');if(!n)return;
+  n.style.display=msg?'block':'none';n.textContent=msg||'';
+}
+async function statusForReset(resetId){
+  return window.SEHC_API_V60.jsonp('adminResetStatusV70',{resetId},16000);
+}
+function recoverableResult(data,u,resetId){
+  if(data&&data.ok&&data.completed&&data.tempPassword){
+    activePasswordReset={userID:u.userID,resetId};
+    resetNotice('Reset confirmed. Copy the temporary password and click I Copied It to clear it from recovery storage.');
+    showCredentials('Temporary Password Reset','A new temporary password was created. The employee must change it at the next sign-in.',u.fullName,u.employeeID,u.username,data.tempPassword);
+    return true;
+  }
+  if(data&&data.ok&&data.acknowledged){
+    sessionStorage.removeItem(resetStorageKey(u.userID));
+    resetNotice('This password reset was already confirmed and its temporary password was cleared. Start a new reset only if the employee still cannot sign in.');
+    return true;
+  }
+  if(data&&data.expired){
+    sessionStorage.removeItem(resetStorageKey(u.userID));
+    resetNotice('The temporary password is no longer recoverable. Confirm the employee cannot sign in before starting a new reset.');
+    return true;
+  }
+  return false;
+}
+async function checkReset(u,resetId){
+  let last=null;
+  for(let n=0;n<3;n++){
+    try{
+      last=await statusForReset(resetId);
+      if(recoverableResult(last,u,resetId))return true;
+      if(last&&last.ok===false)throw new Error(last.error||'Unable to verify reset status');
+    }catch(err){
+      if(n===2){resetNotice('Could not confirm the password reset yet. Do not start another reset. Click Check Reset Status to recover the same request. '+(err.message||''));return false}
+    }
+    if(n<2)await new Promise(r=>setTimeout(r,1800));
+  }
+  resetNotice('The reset is still processing or the backend has not responded. Do not create a new reset. Use Check Reset Status to recover this same request.');
+  return false;
+}
+async function runReset(u){
+  if(busy)return;
+  let current=pendingReset(u.userID);
+  const existing=!!current;
+  if(!existing){
+    if(!confirm('Reset password for '+u.fullName+'? This replaces their current password and requires a change on next sign-in.'))return;
+    try{current={resetId:newResetID(),userID:u.userID,startedAt:Date.now()}}catch(e){alert(e.message);return}
+    sessionStorage.setItem(resetStorageKey(u.userID),JSON.stringify(current));
+  }
+  busy=true;
+  const button=document.querySelector('[data-reset-user="'+CSS.escape(u.userID)+'"]');
+  if(button){button.disabled=true;button.textContent=existing?'Checking…':'Resetting…'}
+  resetNotice(existing?'Checking the existing password-reset request…':'Submitting one password-reset request. Please wait.');
+  try{
+    if(!existing){
+      try{
+        const d=await window.SEHC_API_V60.command('adminResetPassword',{userID:u.userID,resetId:current.resetId},45000);
+        if(d&&!d.ok){
+          const check=await statusForReset(current.resetId);
+          if(recoverableResult(check,u,current.resetId))return;
+          if(check&&check.ok===true&&check.pending){
+            sessionStorage.removeItem(resetStorageKey(u.userID));
+            throw new Error(d.error||'The password reset was rejected. No reset was confirmed.');
+          }
+        }
+      }catch(error){
+        // A timed-out POST may still finish. Never issue a new password reset here.
+        resetNotice('The confirmation is delayed. Checking the same reset request before any additional action…');
+      }
+    }
+    await checkReset(u,current.resetId);
+  }finally{
+    busy=false;
+    if(button){button.disabled=false;button.textContent=pendingReset(u.userID)?'Check Reset Status':'Reset Password'}
+  }
+}
+
 function render(){
   const host=$('umUsers');if(!host)return;host.innerHTML='';
   if(!users.length){host.innerHTML='<p>No accounts are visible for your role.</p>';return}
@@ -1457,16 +1546,9 @@ function render(){
     const row=document.createElement('div');row.className='um-row';
     row.innerHTML='<div><b>'+esc(u.fullName)+'</b><div class="um-meta">'+esc(u.employeeID)+' · @'+esc(u.username)+'</div></div><div>'+esc(u.role)+'</div><div>'+esc(u.status)+'</div><div>'+esc(u.team||'—')+'</div><div class="um-actions"></div>';
     const actions=row.querySelector('.um-actions');
-    const reset=document.createElement('button');reset.type='button';reset.textContent='Reset Password';
-    reset.onclick=async()=>{
-      if(busy)return;busy=true;reset.disabled=true;reset.textContent='Resetting…';
-      try{
-        const d=await window.SEHC_API_V60.command('adminResetPassword',{userID:u.userID});
-        if(!d||!d.ok)throw new Error(d&&d.error?d.error:'Password reset failed');
-        showCredentials('Temporary Password Reset','A new temporary password was created. The employee must change it at the next sign-in.',u.fullName,u.employeeID,u.username,d.tempPassword);
-      }catch(err){alert(err.message||String(err))}
-      finally{busy=false;reset.disabled=false;reset.textContent='Reset Password'}
-    };
+    const reset=document.createElement('button');reset.type='button';reset.dataset.resetUser=u.userID;
+    reset.textContent=pendingReset(u.userID)?'Check Reset Status':'Reset Password';
+    reset.onclick=()=>runReset(u);
     actions.append(reset);
     if(viewer&&viewer.role==='Administrator'){
       const edit=document.createElement('button');edit.type='button';edit.className='alt';edit.textContent='Edit Role / Status';
@@ -1489,7 +1571,7 @@ async function loadUsers(){
   if(busy)return;
   busy=true;
   const btn=$('umRefresh');if(btn){btn.disabled=true;btn.textContent='Loading…'}
-  status('loading','Loading accounts from Google Sheets…');
+  status('loading','Loading accounts…');
   try{
     const d=await window.SEHC_API_V60.jsonp('adminUsersV60',{},25000);
     if(!d||!d.ok)throw new Error(d&&d.error?d.error:'Unable to load accounts');
@@ -1509,7 +1591,28 @@ function showCredentials(title,intro,name,employeeID,username,password){
   $('umModalName').textContent=name||'—';$('umModalEmployeeID').textContent=employeeID||'—';$('umModalUsername').textContent=username||'—';$('umModalPassword').textContent=password||'—';$('umCopyStatus').textContent='';
   $('umCredentialModal').classList.add('open');
 }
-function closeModal(){$('umCredentialModal').classList.remove('open')}
+async function closeModal(){
+  const pending=activePasswordReset;
+  if(!pending){$('umCredentialModal').classList.remove('open');return}
+  if(!confirm('Have you copied the temporary password? Confirming will remove the readable password from the server recovery record.'))return;
+  const button=$('umCloseCredential');button.disabled=true;button.textContent='Confirming…';
+  try{
+    let data;
+    try{data=await window.SEHC_API_V60.command('adminResetAcknowledgeV70',{resetId:pending.resetId},40000)}
+    catch(e){data=await statusForReset(pending.resetId)}
+    if(data&&data.ok&&(data.acknowledged||data.message==='acknowledged')){
+      sessionStorage.removeItem(resetStorageKey(pending.userID));
+      activePasswordReset=null;
+      $('umCredentialModal').classList.remove('open');
+      resetNotice('Temporary password copied and confirmed. The readable recovery copy has been cleared.');
+      render();
+    }else{
+      resetNotice('Could not confirm secure cleanup. Do not initiate another password reset; you can check this same reset request again.');
+      alert('Could not confirm password-reset cleanup. Please try I Copied It again; the current password has not been changed again.');
+    }
+  }catch(err){alert('Could not verify cleanup: '+(err.message||String(err))+' Please retry this confirmation. No new reset was issued.');}
+  finally{button.disabled=false;button.textContent='I Copied It'}
+}
 async function copyText(text,label){
   try{await navigator.clipboard.writeText(text);$('umCopyStatus').textContent=label+' copied.'}
   catch(e){$('umCopyStatus').textContent='Copy failed. Select and copy manually.'}
@@ -1542,7 +1645,7 @@ function init(){
   $('umCopyPassword')?.addEventListener('click',()=>copyText($('umModalPassword').textContent,'Password'));
   $('umCopyCredentials')?.addEventListener('click',()=>copyText('Employee: '+$('umModalName').textContent+'\nEmployee ID: '+$('umModalEmployeeID').textContent+'\nUsername: '+$('umModalUsername').textContent+'\nTemporary Password: '+$('umModalPassword').textContent,'Credentials'));
   $('umCloseCredential')?.addEventListener('click',closeModal);
-  $('umCredentialModal')?.addEventListener('click',e=>{if(e.target===$('umCredentialModal'))closeModal()});
+  $('umCredentialModal')?.addEventListener('click',e=>{if(e.target===$('umCredentialModal')&&!activePasswordReset)closeModal()});
   document.querySelector('button[onclick="go(\'users\')"]')?.addEventListener('click',()=>{if(!busy)loadUsers()});
   const u=window.SEHC_CURRENT_USER;
   if(u&&['Administrator','Supervisor'].includes(u.role))loadUsers();
@@ -1731,7 +1834,7 @@ function setSeen(type,ids){try{localStorage.setItem(seenKey(type),JSON.stringify
 function toast(title,message,action){let stack=$('sehcAdminToastStack');if(!stack){stack=document.createElement('div');stack.id='sehcAdminToastStack';stack.className='sehc-toast-stack';document.body.appendChild(stack)}const t=document.createElement('div');t.className='sehc-toast attention';t.innerHTML='<strong>'+title+'</strong><div>'+message+'</div>';if(action){const b=document.createElement('button');b.type='button';b.textContent=action.label||'Open';b.onclick=()=>{navigate(action.section,action.focus);t.remove()};t.appendChild(b)}stack.appendChild(t);setTimeout(()=>t.remove(),12000)}
 function navigate(section,focus){if(typeof window.go==='function')window.go(section);else document.querySelector('button[onclick="go(\''+section+'\')"]')?.click();setTimeout(()=>{if(!focus)return;const el=$(focus);if(el){el.scrollIntoView({behavior:'smooth',block:'start'});el.animate?.([{boxShadow:'0 0 0 4px #ffc84a88'},{boxShadow:'none'}],{duration:1200})}},120)}
 function setBadge(section,count){const btn=[...document.querySelectorAll('header nav button')].find(b=>(b.getAttribute('onclick')||'').includes("go('"+section+"')"));if(!btn)return;let badge=btn.querySelector('.sehc-nav-badge');if(count>0){if(!badge){badge=document.createElement('span');badge.className='sehc-nav-badge';btn.appendChild(badge)}badge.textContent=String(count)}else badge?.remove()}
-function refreshDomCounts(){state.bingoPending=Number($('pending')?.textContent)||0;state.bingoApproved=Number($('approved')?.textContent)||0;state.redeems=Number($('redeems')?.textContent)||0;render()}
+function refreshDomCounts(){const live=window.SEHC_BINGO_SYNC_OK===true;state.bingoPending=live?(Number($('pending')?.textContent)||0):0;state.bingoApproved=live?(Number($('approved')?.textContent)||0):0;state.redeems=0;render()}
 function render(){
  const c=state.contest||{},active=c.activeCount||0,cp=c.pendingCount||0,totalActions=state.bingoPending+cp+state.redeems;
  if($('adminActiveContests'))$('adminActiveContests').textContent=String(active);if($('adminContestPending'))$('adminContestPending').textContent=String(cp);
@@ -1741,9 +1844,10 @@ function render(){
  const list=$('adminActionList');if(list){const items=[];if(state.bingoPending)items.push({title:state.bingoPending+' Bingo submission'+(state.bingoPending===1?'':'s')+' waiting for review',desc:'Daily Bingo approvals need supervisor action.',label:'Review Bingo',section:'approvals',focus:'bingo-approval-panel'});if(cp)items.push({title:cp+' contest submission'+(cp===1?'':'s')+' waiting for review',desc:'Employee Submission / Claim entries need a decision.',label:'Review Contests',section:'contests',focus:'contest-pending-panel'});if(state.redeems)items.push({title:state.redeems+' reward redemption'+(state.redeems===1?'':'s')+' waiting',desc:'Review requested reward fulfillment.',label:'Review Rewards',section:'approvals',focus:'redemption-panel'});list.replaceChildren();if(!items.length){const e=document.createElement('div');e.className='sehc-action-empty';e.textContent='✓ All caught up. No supervisor actions are waiting right now.';list.appendChild(e)}else items.forEach(x=>{const r=document.createElement('div');r.className='sehc-action-item';const info=document.createElement('div');info.innerHTML='<strong>'+x.title+'</strong><div class="muted">'+x.desc+'</div>';const b=document.createElement('button');b.type='button';b.textContent=x.label;b.onclick=()=>navigate(x.section,x.focus);r.append(info,b);list.appendChild(r)})}
  setBadge('approvals',state.bingoPending+state.redeems);setBadge('contests',cp);
 }
-function inspectBingoNew(){const rows=(window.SEHC_ADMIN_ENTRIES||[]).filter(x=>x.status==='pending');const ids=rows.map(x=>String(x.id||x.entryID||'')).filter(Boolean);const seen=getSeen('admin-bingo');const fresh=ids.filter(id=>!seen.has(id));if(fresh.length){toast('New Bingo review','There '+(fresh.length===1?'is 1 new Bingo submission':'are '+fresh.length+' new Bingo submissions')+' waiting for review.',{label:'Open Approvals',section:'approvals',focus:'bingo-approval-panel'});fresh.forEach(id=>seen.add(id));setSeen('admin-bingo',seen)}}
+function inspectBingoNew(){if(window.SEHC_BINGO_SYNC_OK!==true)return;const rows=(window.SEHC_ADMIN_ENTRIES||[]).filter(x=>x.status==='pending');const ids=rows.map(x=>String(x.id||x.entryID||'')).filter(Boolean);const seen=getSeen('admin-bingo');const fresh=ids.filter(id=>!seen.has(id));if(fresh.length){toast('New Bingo review','There '+(fresh.length===1?'is 1 new Bingo submission':'are '+fresh.length+' new Bingo submissions')+' waiting for review.',{label:'Open Approvals',section:'approvals',focus:'bingo-approval-panel'});fresh.forEach(id=>seen.add(id));setSeen('admin-bingo',seen)}}
 function inspectContestNew(detail){const ids=(detail.pendingEntries||[]).map(x=>String(x.entryID||x.id||'')).filter(Boolean);const seen=getSeen('admin-contest');const fresh=ids.filter(id=>!seen.has(id));if(fresh.length){toast('New contest review','There '+(fresh.length===1?'is 1 new employee contest entry':'are '+fresh.length+' new employee contest entries')+' waiting for review.',{label:'Review Contests',section:'contests',focus:'contest-pending-panel'});fresh.forEach(id=>seen.add(id));setSeen('admin-contest',seen)}}
 window.addEventListener('sehc-admin-contest-update',e=>{state.contest=e.detail||state.contest;render();inspectContestNew(state.contest)});
+window.addEventListener('sehc-bingo-sync',()=>{refreshDomCounts();if(window.SEHC_BINGO_SYNC_OK)inspectBingoNew()});
 function observeCount(id){const el=$(id);if(!el)return;new MutationObserver(()=>{refreshDomCounts();if(id==='pending')inspectBingoNew()}).observe(el,{childList:true,subtree:true,characterData:true})}
 function init(){if(started)return;started=true;['pending','approved','redeems'].forEach(observeCount);if(window.SEHC_ADMIN_CONTEST_STATE)state.contest=window.SEHC_ADMIN_CONTEST_STATE;refreshDomCounts();inspectBingoNew();if(state.contest)inspectContestNew(state.contest);setInterval(()=>{if(document.visibilityState!=='visible')return;try{window.SEHC_ADMIN_CONTEST_REFRESH?.()}catch(e){}},60000)}
 if(window.SEHC_CURRENT_USER)init();else window.addEventListener('sehc-auth-ready',init,{once:true});
