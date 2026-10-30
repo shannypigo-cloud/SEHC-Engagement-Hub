@@ -1050,7 +1050,28 @@ let lastSpin='',lastWinner='',replaying=false,historyCache=[];
 try{localStorage.setItem('sehc-draw-schedule-v31',JSON.stringify({enabled:false,updated:Date.now()}));localStorage.removeItem('sehc-grand-draw-live-v12')}catch(e){}
 function esc(s){return String(s??'').replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]))}
 function post(data){data.token=window.SEHC_AUTH_TOKEN||'';const n='sehc-draw-post-'+Date.now(),f=document.createElement('form'),i=document.createElement('iframe');i.name=n;i.style.display='none';document.body.appendChild(i);f.method='POST';f.action=API;f.target=n;f.style.display='none';Object.entries(data).forEach(([k,v])=>{const x=document.createElement('input');x.type='hidden';x.name=k;x.value=String(v);f.appendChild(x)});document.body.appendChild(f);f.submit();setTimeout(()=>{f.remove();i.remove();},4500);setTimeout(refresh,800);setTimeout(refresh,2200)}
-function targetAngle(state){const n=Math.max(1,state.poolCount||state.pool.length||1),sector=360/n;return 360*7+((360-(Number(state.winningIndex)+.5)*sector)%360+360)%360}
+function landingAngle(state){
+  const pool=Array.isArray(state.pool)?state.pool:[];
+  const n=pool.length||Number(state.poolCount)||0;
+  const i=Number(state.winningIndex);
+  if(!Number.isInteger(n)||n<1||!Number.isInteger(i)||i<0||i>=n)return null;
+  // Canvas wedges start at 12 o'clock (-90 degrees), pointer is at 3 o'clock.
+  // Rotating the selected wedge center to 0 degrees requires +90 degrees.
+  const sector=360/n;
+  return ((90-(i+.5)*sector)%360+360)%360;
+}
+function targetAngle(state){const a=landingAngle(state);return a===null?0:360*7+a}
+function alignRecordedWinner(state,elementId){
+  const rotor=document.getElementById(elementId),a=landingAngle(state);
+  if(!rotor||a===null)return;
+  // A browser opened after the draw completed must still display the official winner.
+  if(lastSpin!==state.drawId){
+    rotor.style.transition='none';
+    rotor.style.transform='rotate('+a+'deg)';
+    lastSpin=state.drawId;
+  }
+}
+
 function paintPool(state){try{if(Array.isArray(state.pool)&&state.pool.length){arranged=state.pool.slice();paint(true);const wc=document.getElementById('wheelCount');if(wc)wc.textContent=state.pool.length+' raffle tickets in this draw snapshot';}}catch(e){}}
 function animate(state){const rotor=document.getElementById('rotor');if(!rotor||lastSpin===state.drawId)return;lastSpin=state.drawId;const elapsed=Math.max(0,Date.now()-Number(state.startedAt||0)),remain=Math.max(400,Number(state.duration||7300)-elapsed);rotor.style.transition='none';rotor.style.transform='rotate(0deg)';void rotor.offsetWidth;rotor.style.transition='transform '+remain+'ms cubic-bezier(.08,.74,.12,1)';rotor.style.transform='rotate('+targetAngle(state)+'deg)'}
 window.SEHC_DRAW_RECEIVE=function(state){
@@ -1062,6 +1083,7 @@ window.SEHC_DRAW_RECEIVE=function(state){
    if(st){st.className='live';st.textContent='🔴 LIVE · '+(state.mode==='automatic'?'Automatic':'Manual')+' Grand Draw · Started by '+(state.startedBy||'System');}
    if(ws)ws.textContent='🎡 LIVE — spinning from the frozen approved ticket pool…';animate(state)
  }else if(state.status==='winner'){
+    alignRecordedWinner(state,'rotor');
    if(st){st.className='winner';st.textContent='🏆 Winner: '+state.winner+' · $'+state.prize+' Gift Card';}
    if(ws)ws.textContent='🏆 '+state.winner+' wins $'+state.prize+'!';
    const wn=document.getElementById('winnerName');if(wn)wn.textContent=state.winner;
