@@ -899,19 +899,29 @@ window.addEventListener('storage',preview);preview();
 </script>
 <script id="sehc-admin-live-bingo-v48">
 (function(){
-let names=(window.SEHC_CATEGORY_NAMES||['Monster Money','Candy Crush','Ghost Payments','Witch Magic']).slice();
+let names=(window.SEHC_CATEGORY_NAMES||[]).slice();
 function esc(s){return String(s??'').replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]))}
 function render(){
   const entries=Array.isArray(window.SEHC_ADMIN_ENTRIES)?window.SEHC_ADMIN_ENTRIES:[];
   const approved=entries.filter(x=>String(x.status||'').toLowerCase()==='approved');
   const pending=entries.filter(x=>String(x.status||'').toLowerCase()==='pending');
-
-  const rank=new Map(),categoryTotals=[0,0,0,0];
+  // Pull the saved category configuration, not the October defaults.
+  if(Array.isArray(window.SEHC_CATEGORY_NAMES)&&window.SEHC_CATEGORY_NAMES.length){
+    names=window.SEHC_CATEGORY_NAMES.slice();
+  }
+  // Approved tickets retain their original category names. Never silently
+  // attribute a previous/renamed category to a new one or lose its count.
+  const boardNames=names.slice();
+  for(const e of approved){
+    const category=String(e.category||'').trim();
+    if(category&&!boardNames.includes(category))boardNames.push(category);
+  }
+  const rank=new Map(),categoryTotals=Array(boardNames.length).fill(0);
   for(const e of approved){
     const name=String(e.name||'Unknown Employee').trim();
-    const cat=names.indexOf(String(e.category||''));
+    const cat=boardNames.indexOf(String(e.category||'').trim());
     const tickets=Math.max(1,Math.floor(Number(e.tickets)||1));
-    if(!rank.has(name))rank.set(name,{name,tickets:0,categories:[0,0,0,0],entries:0});
+    if(!rank.has(name))rank.set(name,{name,tickets:0,categories:Array(boardNames.length).fill(0),entries:0});
     const r=rank.get(name);
     r.tickets+=tickets;
     r.entries++;
@@ -933,16 +943,16 @@ function render(){
         '<span class="bingo-place">'+(i===0?'🏆':i===1?'🥈':i===2?'🥉':'#'+(i+1))+'</span>'+
         '<div class="bingo-person-name"><strong>'+esc(r.name)+'</strong>'+
           '<small>'+r.entries+' approved '+(r.entries===1?'entry':'entries')+' · '+
-          r.categories.map((n,k)=>n?esc(names[k])+': '+n:'').filter(Boolean).join(' · ')+'</small></div>'+
+          r.categories.map((n,k)=>n?esc(boardNames[k])+': '+n:'').filter(Boolean).join(' · ')+'</small></div>'+
         '<div class="bingo-ticket-count">'+r.tickets+' <small>'+(r.tickets===1?'ticket':'tickets')+'</small></div>'+
       '</div>'+
       '<div class="bingo-track"><div style="width:'+Math.max(3,100*r.tickets/Math.max(1,sorted[0].tickets))+'%"></div></div>'+
     '</div>'
   ).join(''):'<div class="bingo-empty">No approved Bingo tickets found for today.</div>';
 
-  const gridStyle='grid-template-columns:minmax(175px,1.7fr) repeat('+names.length+',minmax(105px,1fr)) minmax(95px,.9fr)';
+  const gridStyle='grid-template-columns:minmax(175px,1.7fr) repeat('+boardNames.length+',minmax(105px,1fr)) minmax(95px,.9fr)';
   root.querySelector('#admin-bingo-visual-chart').innerHTML=
-    '<div class="bingo-matrix-header" style="'+gridStyle+'"><div>MEMBER</div><div>MONSTER MONEY</div><div>CANDY CRUSH</div><div>GHOST PAYMENTS</div><div>WITCH MAGIC</div><div>TOTAL TICKETS</div></div>'+
+    '<div class="bingo-matrix-header" style="'+gridStyle+'"><div>MEMBER</div>'+boardNames.map(n=>'<div>'+esc(String(n).toUpperCase())+'</div>').join('')+'<div>TOTAL TICKETS</div></div>'+
     (sorted.length?
       '<div class="bingo-matrix-rows">'+
       sorted.map((r,i)=>
@@ -958,14 +968,16 @@ function render(){
     )+
     '<div class="bingo-matrix-footer" style="'+gridStyle+'"><div>DAILY TOTAL</div>'+categoryTotals.map(n=>'<div>'+n+'</div>').join('')+'<div>'+total+'</div></div>';
 
-  root.querySelector('#admin-bingo-category-grid').innerHTML=names.map((n,i)=>
+  root.querySelector('#admin-bingo-category-grid').innerHTML=boardNames.map((n,i)=>
     '<div class="bingo-category"><small>'+esc(n)+'</small><strong>'+categoryTotals[i]+'</strong><span>approved '+(categoryTotals[i]===1?'ticket':'tickets')+'</span></div>'
   ).join('');
 
   const sync=root.querySelector('#admin-bingo-sync-message');
-  sync.textContent=sorted.length
+  const older=boardNames.filter(n=>!names.includes(n));
+  sync.textContent=(sorted.length
     ? 'Showing '+approved.length+' approved entries. Refreshed '+new Date().toLocaleTimeString()+'.'
-    : 'No approved Bingo entries are available for today.';
+    : 'No approved Bingo entries are available for today.')+
+    (older.length?' Previous/renamed categories on approved entries: '+older.join(', ')+'. Tickets remain under their original category.':'');
 }
 window.SEHCBingoRankingRefresh=render;window.addEventListener('sehc-bingo-config',e=>{names=(e.detail||[]).filter(x=>x.active).map(x=>x.name);render()});
 document.getElementById('admin-bingo-refresh-btn')?.addEventListener('click',()=>{
@@ -1046,7 +1058,7 @@ document.getElementById('integrated-refresh').addEventListener('click',refresh);
 (function(){
 'use strict';
 const API="https://script.google.com/macros/s/AKfycbwsjW0VFilbJokuaNYWF-vU7JktoEnWsL4TLJ7u4MNH3W4pNv2d3VAhaT24bE3j2gXo/exec",POLL=5000;
-let lastSpin='',lastWinner='',replaying=false,historyCache=[];
+let lastSpin='',lastWinner='',replaying=false,historyCache=[],lastDrawStatus='';
 try{localStorage.setItem('sehc-draw-schedule-v31',JSON.stringify({enabled:false,updated:Date.now()}));localStorage.removeItem('sehc-grand-draw-live-v12')}catch(e){}
 function esc(s){return String(s??'').replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]))}
 function post(data){data.token=window.SEHC_AUTH_TOKEN||'';const n='sehc-draw-post-'+Date.now(),f=document.createElement('form'),i=document.createElement('iframe');i.name=n;i.style.display='none';document.body.appendChild(i);f.method='POST';f.action=API;f.target=n;f.style.display='none';Object.entries(data).forEach(([k,v])=>{const x=document.createElement('input');x.type='hidden';x.name=k;x.value=String(v);f.appendChild(x)});document.body.appendChild(f);f.submit();setTimeout(()=>{f.remove();i.remove();},4500);setTimeout(refresh,800);setTimeout(refresh,2200)}
@@ -1076,6 +1088,7 @@ function paintPool(state){try{if(Array.isArray(state.pool)&&state.pool.length){a
 function animate(state){const rotor=document.getElementById('rotor');if(!rotor||lastSpin===state.drawId)return;lastSpin=state.drawId;const elapsed=Math.max(0,Date.now()-Number(state.startedAt||0)),remain=Math.max(400,Number(state.duration||7300)-elapsed);rotor.style.transition='none';rotor.style.transform='rotate(0deg)';void rotor.offsetWidth;rotor.style.transition='transform '+remain+'ms cubic-bezier(.08,.74,.12,1)';rotor.style.transform='rotate('+targetAngle(state)+'deg)'}
 window.SEHC_DRAW_RECEIVE=function(state){
  if(!state||state.ok!==true||replaying)return;
+ lastDrawStatus=String(state.status||'');
  const st=document.getElementById('sharedDrawStatus'),auto=document.getElementById('sharedAuto'),count=document.getElementById('sharedPoolCount'),mode=document.getElementById('sharedMode');
  if(auto)auto.checked=!!state.autoEnabled;if(count)count.textContent=state.poolCount||0;if(mode)mode.textContent=state.status==='spinning'?(state.mode||'manual').toUpperCase():'—';paintPool(state);
  const ws=document.getElementById('wheelStatus');
@@ -1140,7 +1153,7 @@ function setup(){
    b.parentElement.appendChild(panel);
    document.getElementById('sharedAuto').addEventListener('change',e=>post({action:'demoSetAuto',enabled:e.target.checked}));
    document.getElementById('sharedRefresh').onclick=refresh;
-   document.getElementById('sharedReset').onclick=()=>{if(confirm('Void today’s test draw and return the live state to waiting?'))post({action:'demoResetDraw'})};
+   document.getElementById('sharedReset').onclick=()=>{if(['spinning','winner'].includes(lastDrawStatus)){alert('Today\u2019s Grand Draw already has a winner and cannot be reset.');return}if(confirm('Void today’s test draw and return the live state to waiting?'))post({action:'demoResetDraw'})};
  }
  document.getElementById('adminDrawHistoryRefresh')?.addEventListener('click',loadHistory);
  refresh();loadHistory();
